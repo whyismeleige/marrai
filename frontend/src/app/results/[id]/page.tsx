@@ -1,108 +1,199 @@
-import { getAudit } from '@/lib/mongodb'
 import { notFound } from 'next/navigation'
-import {
-  CheckCircle, XCircle, ArrowLeft,
-  Loader2, Cpu, FileText, List, ArrowRight, RotateCcw
-} from 'lucide-react'
 import Link from 'next/link'
+import {
+  ArrowLeft, Cpu, CheckCircle, XCircle, AlertTriangle,
+  Lightbulb, FileText, Globe, ShieldCheck, BarChart3,
+  Brain, List, Table2, Image, ExternalLink, RefreshCw,
+  TrendingUp, Zap,
+} from 'lucide-react'
+import { getAudit } from '@/lib/mongodb'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-/* ── Helpers ────────────────────────────────────────── */
-function getGrade(score: number) {
-  if (score >= 80) return { grade: 'A', label: 'Excellent', cls: 'status-good' }
-  if (score >= 60) return { grade: 'B', label: 'Good',      cls: 'text-primary' }
-  if (score >= 40) return { grade: 'C', label: 'Fair',      cls: 'status-warn'  }
-  return              { grade: 'D', label: 'Needs work', cls: 'status-bad'   }
+// ─── Types re-used from mongodb ──────────────────────────────────────────────
+
+type Priority  = 'critical' | 'warning' | 'suggestion'
+type Category  = 'schema' | 'content' | 'technical' | 'structure'
+
+interface Finding {
+  text: string
+  priority: Priority
+  category: Category
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const r = 40
-  const circumference = 2 * Math.PI * r
-  const offset = circumference - (score / 100) * circumference
-  const color =
-    score >= 80 ? '#22c55e' :
-    score >= 60 ? '#6366f1' :
-    score >= 40 ? '#f59e0b' : '#ef4444'
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function scoreGrade(s: number): { label: string; color: string; bg: string; ring: string } {
+  if (s >= 80) return { label: 'Excellent',  color: 'text-green-600 dark:text-green-400',  bg: 'bg-green-500/10',  ring: 'stroke-green-500'  }
+  if (s >= 60) return { label: 'Good',       color: 'text-blue-600 dark:text-blue-400',    bg: 'bg-blue-500/10',   ring: 'stroke-blue-500'   }
+  if (s >= 40) return { label: 'Moderate',   color: 'text-amber-600 dark:text-amber-400',  bg: 'bg-amber-500/10',  ring: 'stroke-amber-500'  }
+  return             { label: 'Needs work',  color: 'text-red-600 dark:text-red-400',      bg: 'bg-red-500/10',    ring: 'stroke-red-500'    }
+}
+
+function priorityBadge(p: Priority) {
+  if (p === 'critical')   return { label: 'Critical',    cls: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' }
+  if (p === 'warning')    return { label: 'Warning',     cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' }
+  return                         { label: 'Suggestion',  cls: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' }
+}
+
+function priorityIcon(p: Priority) {
+  if (p === 'critical') return <XCircle       className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+  if (p === 'warning')  return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+  return                       <Lightbulb     className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+}
+
+// Score ring SVG
+function ScoreRing({ score, grade }: { score: number; grade: ReturnType<typeof scoreGrade> }) {
+  const r = 52
+  const circ = 2 * Math.PI * r
+  const dash = (score / 100) * circ
 
   return (
-    <svg width="110" height="110" viewBox="0 0 110 110" className="-rotate-90">
-      <circle cx="55" cy="55" r={r} fill="none" strokeWidth="8" className="stroke-border" />
-      <circle
-        cx="55" cy="55" r={r}
-        fill="none"
-        strokeWidth="8"
-        stroke={color}
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
-      />
-    </svg>
+    <div className="relative w-40 h-40 mx-auto">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+        {/* Track */}
+        <circle cx="60" cy="60" r={r} fill="none" strokeWidth="8" className="stroke-muted" />
+        {/* Progress */}
+        <circle
+          cx="60" cy="60" r={r}
+          fill="none" strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+          className={grade.ring}
+          style={{ transition: 'stroke-dasharray 1s ease' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-4xl font-black tabular-nums ${grade.color}`}>{score}</span>
+        <span className="text-xs text-muted-foreground font-medium">/ 100</span>
+      </div>
+    </div>
   )
 }
 
-/* ── Shared nav ─────────────────────────────────────── */
+// Category score bar
+function CategoryBar({
+  label, score, max, icon: Icon, color,
+}: {
+  label: string; score: number; max: number; icon: React.ElementType; color: string
+}) {
+  const pct = Math.round((score / max) * 100)
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-1.5 text-foreground font-medium">
+          <Icon className={`h-3.5 w-3.5 ${color}`} />
+          {label}
+        </div>
+        <span className="text-muted-foreground tabular-nums">{score}/{max}</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${
+            pct >= 80 ? 'bg-green-500' : pct >= 55 ? 'bg-blue-500' : pct >= 35 ? 'bg-amber-500' : 'bg-red-500'
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// A single finding row
+function FindingRow({ f }: { f: Finding }) {
+  const badge  = priorityBadge(f.priority)
+  const icon   = priorityIcon(f.priority)
+  return (
+    <div className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 bg-background hover:bg-muted/30 transition-colors">
+      {icon}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-foreground leading-snug">{f.text}</p>
+      </div>
+      <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${badge.cls}`}>
+        {badge.label}
+      </span>
+    </div>
+  )
+}
+
+// Header
 function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-[7px] bg-primary flex items-center justify-center">
             <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
           <span className="font-semibold text-[15px] tracking-tight text-foreground">Marrai</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link
+            href="/audit"
+            className="h-8 px-3.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1.5 transition-opacity"
+          >
+            New audit
+          </Link>
+        </div>
       </div>
     </header>
   )
 }
 
-/* ── Page ───────────────────────────────────────────── */
-export default async function ResultsPage({
-  params,
-}: {
-  params: Promise<{ id: string }> // ✅ Next.js 15: params is a Promise
-}) {
-  const { id } = await params // ✅ must be awaited
+// ─── Loading screen ───────────────────────────────────────────────────────────
 
+const LOADING_STEPS = [
+  'Fetching page content…',
+  'Parsing schema markup…',
+  'Scoring content quality…',
+  'Analysing technical signals…',
+]
+
+function RefreshButton() {
+  'use client'
+  return (
+    <button
+      onClick={() => window.location.reload()}
+      className="h-9 px-4 rounded-lg text-sm font-medium border border-border hover:bg-muted inline-flex items-center gap-1.5 transition-colors text-foreground"
+    >
+      <RefreshCw className="h-3.5 w-3.5" />
+      Refresh
+    </button>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function ResultsPage({ params }: { params: { id: string } }) {
+  const { id } = await params;
+  
   const audit = await getAudit(id)
+  
   if (!audit) notFound()
 
-  /* ── Pending / processing ── */
+  // ── Loading / processing state ────────────────────────────────────────────
   if (audit.status === 'pending' || audit.status === 'processing') {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         <div className="flex-1 flex items-center justify-center px-5 py-20">
-          <div className="text-center max-w-sm">
+          <div className="surface-card rounded-2xl p-10 max-w-sm w-full text-center">
             <div className="relative w-16 h-16 mx-auto mb-6">
-              <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
-              <div className="w-16 h-16 rounded-full border-2 border-border border-t-primary animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Cpu className="h-6 w-6 text-primary" />
+              <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+              <div className="relative w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                <Brain className="h-7 w-7 text-primary animate-pulse" />
               </div>
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Analysing your site…</h2>
-            <p className="text-sm text-muted-foreground mb-6">This takes 30–60 seconds</p>
-            <div className="space-y-2 text-sm text-left bg-muted/50 rounded-lg p-4 mb-6">
-              {[
-                'Fetching your webpage',
-                'Checking schema markup',
-                'Analysing content structure',
-                'Calculating your score',
-              ].map((s, i) => (
-                <div key={s} className="flex items-center gap-2">
-                  {i < 3 ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                  ) : (
-                    <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
-                  )}
-                  <span className={i < 3 ? 'text-muted-foreground' : 'text-foreground'}>{s}</span>
+            <h2 className="text-lg font-bold text-foreground mb-1">Analysing your page…</h2>
+            <p className="text-sm text-muted-foreground mb-6">This usually takes 15–30 seconds</p>
+            <div className="space-y-2 text-left mb-6">
+              {LOADING_STEPS.map((s, i) => (
+                <div key={s} className="flex items-center gap-2 text-sm">
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${i < 2 ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                  <span className={i < 2 ? 'text-foreground' : 'text-muted-foreground/60'}>{s}</span>
                 </div>
               ))}
             </div>
-            {/* Client refresh — extracted to avoid 'use client' on server page */}
             <RefreshButton />
           </div>
         </div>
@@ -110,13 +201,13 @@ export default async function ResultsPage({
     )
   }
 
-  /* ── Failed ── */
+  // ── Failed state ──────────────────────────────────────────────────────────
   if (audit.status === 'failed') {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
         <div className="flex-1 flex items-center justify-center px-5 py-20">
-          <div className="surface-card rounded-xl p-8 max-w-sm w-full text-center">
+          <div className="surface-card rounded-2xl p-8 max-w-sm w-full text-center">
             <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
               <XCircle className="h-6 w-6 text-destructive" />
             </div>
@@ -126,7 +217,7 @@ export default async function ResultsPage({
             </p>
             <Link
               href="/audit"
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              className="h-10 px-5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1.5 transition-opacity"
             >
               Try again
             </Link>
@@ -136,174 +227,217 @@ export default async function ResultsPage({
     )
   }
 
-  /* ── Completed ── */
-  const { grade, label, cls } = getGrade(audit.score)
+  // ── Completed ─────────────────────────────────────────────────────────────
+
+  const grade     = scoreGrade(audit.score)
+  const catScores = audit.categoryScores ?? { schema: 0, content: 0, technical: 0, structure: 0 }
+
+  // Group findings by priority, falling back to legacy issues/warnings/recommendations
+  let findings: Finding[] = audit.findings ?? []
+
+  // Fallback: synthesise findings from legacy arrays if findings array is empty
+  if (!findings.length) {
+    const legacy: Finding[] = [
+      ...(audit.issues          ?? []).map(t => ({ text: t, priority: 'critical'   as Priority, category: 'technical' as Category })),
+      ...(audit.warnings        ?? []).map(t => ({ text: t, priority: 'warning'    as Priority, category: 'content'   as Category })),
+      ...(audit.recommendations ?? []).map(t => ({ text: t, priority: 'suggestion' as Priority, category: 'content'   as Category })),
+    ]
+    findings = legacy
+  }
+
+  const criticals   = findings.filter(f => f.priority === 'critical')
+  const warnings    = findings.filter(f => f.priority === 'warning')
+  const suggestions = findings.filter(f => f.priority === 'suggestion')
+
+  const domain = (() => {
+    try { return new URL(audit.url).hostname.replace(/^www\./, '') } catch { return audit.url }
+  })()
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-5 py-12">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-5 py-10">
 
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back
-        </Link>
+        {/* ── Breadcrumb ── */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8 fade-up">
+          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/audit" className="hover:text-foreground transition-colors">Audit</Link>
+          <span>/</span>
+          <span className="text-foreground truncate max-w-[200px]">{domain}</span>
+        </div>
 
-        {/* ── Score card ── */}
-        <div className="surface-card rounded-xl p-8 mb-4 fade-up">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-            <div className="relative shrink-0">
-              <ScoreRing score={audit.score} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-black text-foreground leading-none">{audit.score}</span>
-                <span className="text-xs text-muted-foreground">/100</span>
+        {/* ── Hero score card ── */}
+        <div className="surface-card rounded-2xl p-8 mb-5 fade-up">
+          <div className="grid md:grid-cols-[auto,1fr] gap-8 items-center">
+
+            {/* Score ring */}
+            <div className="flex flex-col items-center gap-3">
+              <ScoreRing score={audit.score} grade={grade} />
+              <div className={`text-sm font-semibold px-3 py-1 rounded-full ${grade.bg} ${grade.color}`}>
+                {grade.label}
               </div>
             </div>
-            <div className="flex-1 min-w-0">
+
+            {/* Info */}
+            <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className={`text-3xl font-black ${cls}`}>Grade {grade}</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
-                  audit.score >= 80 ? 'bg-green-500/10 border-green-500/25 text-green-600 dark:text-green-400'
-                  : audit.score >= 60 ? 'bg-primary/10 border-primary/25 text-primary'
-                  : audit.score >= 40 ? 'bg-yellow-500/10 border-yellow-500/25 text-yellow-700 dark:text-yellow-400'
-                  : 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-400'
-                }`}>{label}</span>
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground truncate">{audit.url}</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-3 break-all">{audit.url}</p>
-              <p className="text-sm text-foreground">
+              <h1 className="text-2xl font-black tracking-tight text-foreground mb-2">
+                AEO Score: {audit.score}/100
+              </h1>
+              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
                 {audit.score >= 80
-                  ? 'Your page is well-optimised for AI search. Keep it up.'
+                  ? 'Your page is well-optimised for AI search. Focus on schema richness to push further.'
                   : audit.score >= 60
-                  ? 'Good start — a few targeted improvements will significantly boost your score.'
+                  ? 'Good foundation — a few targeted improvements will significantly boost your AI visibility.'
                   : audit.score >= 40
-                  ? 'Moderate optimisation needed. Address the issues below to improve your visibility.'
-                  : 'Significant AEO work needed. Start with the critical issues below.'}
+                  ? 'Moderate optimisation needed. Address the critical issues below for quick wins.'
+                  : 'Significant AEO work needed. Start with schema markup and content structure today.'}
               </p>
-            </div>
-          </div>
 
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-border">
-            {[
-              { label: 'Schema Markup', value: audit.hasSchema ? '✓ Present' : '✗ Missing', ok: audit.hasSchema },
-              { label: 'H1 Tags',       value: String(audit.h1Count),          ok: audit.h1Count === 1 },
-              { label: 'Q Headings',    value: String(audit.questionHeadings), ok: audit.questionHeadings > 0 },
-              { label: 'Structured',    value: `${audit.listCount + audit.tableCount} elements`, ok: (audit.listCount + audit.tableCount) > 0 },
-            ].map((item) => (
-              <div key={item.label} className="bg-muted/40 rounded-lg p-3">
-                <div className={`text-base font-bold mb-0.5 ${item.ok ? 'status-good' : 'status-bad'}`}>
-                  {item.value}
-                </div>
-                <div className="text-xs text-muted-foreground">{item.label}</div>
+              {/* Category bars */}
+              <div className="space-y-3">
+                <CategoryBar label="Schema & AI Signals" score={catScores.schema}    max={25} icon={Brain}       color="text-purple-500" />
+                <CategoryBar label="Content Quality"      score={catScores.content}   max={30} icon={FileText}    color="text-blue-500"   />
+                <CategoryBar label="Technical Signals"    score={catScores.technical} max={25} icon={ShieldCheck} color="text-green-500"  />
+                <CategoryBar label="Page Structure"       score={catScores.structure} max={20} icon={BarChart3}   color="text-amber-500"  />
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
-        {/* ── Critical issues ── */}
-        {audit.issues?.length > 0 && (
-          <div className="surface-card rounded-xl p-6 mb-4 fade-up delay-100">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-7 h-7 rounded-md bg-destructive/10 flex items-center justify-center">
-                <XCircle className="h-4 w-4 text-destructive" />
+        {/* ── Quick stats grid ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 fade-up delay-100">
+          {[
+            {
+              label: 'Word count',
+              value: audit.wordCount ? `${audit.wordCount.toLocaleString()}` : '—',
+              sub: audit.wordCount && audit.wordCount >= 600 ? 'Good ✓' : audit.wordCount ? 'Needs more' : '',
+              ok: (audit.wordCount ?? 0) >= 600,
+            },
+            {
+              label: 'Schema types',
+              value: audit.schemaTypes?.length ? String(audit.schemaTypes.length) : 'None',
+              sub: audit.schemaTypes?.join(', ') || 'Not found',
+              ok: (audit.schemaTypes?.length ?? 0) > 0,
+            },
+            {
+              label: 'Question H2s',
+              value: String(audit.questionHeadings ?? 0),
+              sub: (audit.questionHeadings ?? 0) >= 3 ? 'Good ✓' : 'Add more',
+              ok: (audit.questionHeadings ?? 0) >= 3,
+            },
+            {
+              label: 'Images w/o alt',
+              value: `${audit.imagesWithoutAlt ?? '—'}`,
+              sub: (audit.imagesWithoutAlt ?? 0) === 0 ? 'All good ✓' : 'Fix alt text',
+              ok: (audit.imagesWithoutAlt ?? 0) === 0,
+            },
+          ].map(item => (
+            <div key={item.label} className="surface-card rounded-xl p-4">
+              <div className={`text-2xl font-black tabular-nums mb-0.5 ${item.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                {item.value}
               </div>
-              <h2 className="font-semibold text-foreground">
+              <div className="text-xs font-medium text-foreground mb-0.5">{item.label}</div>
+              <div className="text-[11px] text-muted-foreground truncate">{item.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Findings ── */}
+        {criticals.length > 0 && (
+          <div className="surface-card rounded-2xl p-6 mb-4 fade-up delay-150">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <XCircle className="h-4 w-4 text-red-500" />
+              </div>
+              <h2 className="font-bold text-foreground">
                 Critical Issues
-                <span className="ml-2 text-xs font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
-                  {audit.issues.length}
+                <span className="ml-2 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                  {criticals.length}
                 </span>
               </h2>
             </div>
             <div className="space-y-2">
-              {audit.issues.map((issue: string, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-destructive/15 bg-destructive/5"
-                >
-                  <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                  <span className="text-sm text-foreground">{issue}</span>
-                </div>
-              ))}
+              {criticals.map((f, i) => <FindingRow key={i} f={f} />)}
             </div>
           </div>
         )}
 
-        {/* ── Recommendations ── */}
-        {audit.recommendations?.length > 0 && (
-          <div className="surface-card rounded-xl p-6 mb-4 fade-up delay-200">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4 text-primary" />
+        {warnings.length > 0 && (
+          <div className="surface-card rounded-2xl p-6 mb-4 fade-up delay-200">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
               </div>
-              <h2 className="font-semibold text-foreground">
-                Recommendations
-                <span className="ml-2 text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                  {audit.recommendations.length}
+              <h2 className="font-bold text-foreground">
+                Warnings
+                <span className="ml-2 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  {warnings.length}
                 </span>
               </h2>
             </div>
             <div className="space-y-2">
-              {audit.recommendations.map((rec: string, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-primary/15 bg-primary/5"
-                >
-                  <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-[10px] font-bold text-primary">{i + 1}</span>
-                  </div>
-                  <span className="text-sm text-foreground">{rec}</span>
-                </div>
-              ))}
+              {warnings.map((f, i) => <FindingRow key={i} f={f} />)}
             </div>
           </div>
         )}
 
-        {/* ── Content details ── */}
-        <div className="surface-card rounded-xl p-6 mb-4 fade-up delay-300">
-          <div className="flex items-center gap-2 mb-5">
-            <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center">
-              <FileText className="h-4 w-4 text-muted-foreground" />
+        {suggestions.length > 0 && (
+          <div className="surface-card rounded-2xl p-6 mb-4 fade-up delay-250">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Lightbulb className="h-4 w-4 text-blue-500" />
+              </div>
+              <h2 className="font-bold text-foreground">
+                Suggestions
+                <span className="ml-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                  {suggestions.length}
+                </span>
+              </h2>
             </div>
-            <h2 className="font-semibold text-foreground">Content Details</h2>
+            <div className="space-y-2">
+              {suggestions.map((f, i) => <FindingRow key={i} f={f} />)}
+            </div>
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
+        )}
+
+        {/* ── Detailed signals ── */}
+        <div className="surface-card rounded-2xl p-6 mb-5 fade-up delay-300">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <h2 className="font-bold text-foreground">All Signals</h2>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-2.5">
             {[
-              {
-                icon: List,
-                label: 'Word count',
-                value: `${audit.listCount ?? '—'} words`, // ✅ fixed: was audit.listCount
-                note: (audit.listCount ?? 0) < 300 ? '(300+ recommended)' : null,
-              },
-              {
-                icon: FileText,
-                label: 'First paragraph',
-                value: `${audit.firstParaWordCount} words`,
-                note: (audit.firstParaWordCount < 40 || audit.firstParaWordCount > 80) ? '(40–80 recommended)' : null,
-              },
-              {
-                icon: List,
-                label: 'Structured content',
-                value: `${audit.listCount} lists, ${audit.tableCount} tables`,
-                note: null,
-              },
-              {
-                icon: FileText,
-                label: 'Heading structure',
-                value: `${audit.h1Count} H1, ${audit.questionHeadings} question headings`,
-                note: null,
-              },
-            ].map((item) => (
-              <div key={item.label} className="p-3 rounded-lg bg-muted/40">
-                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                  <item.icon className="h-3 w-3" />
-                  {item.label}
-                </div>
-                <div className="text-sm font-medium text-foreground">
-                  {item.value}
-                  {item.note && <span className="ml-1.5 text-xs status-warn">{item.note}</span>}
+              { icon: Brain,      label: 'Schema markup',      value: audit.hasSchema ? (audit.schemaTypes?.join(', ') || 'Found') : 'Missing',           ok: audit.hasSchema },
+              { icon: CheckCircle,label: 'FAQ schema',          value: audit.hasFaqSchema ? 'Present' : 'Not found',                                        ok: audit.hasFaqSchema },
+              { icon: CheckCircle,label: 'Article schema',      value: audit.hasArticleSchema ? 'Present' : 'Not found',                                    ok: audit.hasArticleSchema },
+              { icon: Globe,      label: 'OG tags',             value: audit.hasOgTags ? 'Present' : 'Missing',                                             ok: audit.hasOgTags },
+              { icon: ShieldCheck,label: 'AI bots allowed',     value: audit.robotsBlocked ? 'Blocked ⚠' : 'Allowed ✓',                                    ok: !audit.robotsBlocked },
+              { icon: FileText,   label: 'Meta description',    value: audit.hasMetaDescription ? `${audit.metaDescription?.slice(0, 50)}…` : 'Missing',   ok: audit.hasMetaDescription },
+              { icon: FileText,   label: 'Meta title',          value: audit.metaTitle ? audit.metaTitle.slice(0, 50) : 'Missing',                         ok: !!audit.metaTitle },
+              { icon: CheckCircle,label: 'Canonical tag',       value: audit.hasCanonical ? 'Present' : 'Missing',                                          ok: audit.hasCanonical },
+              { icon: FileText,   label: 'H1 tag',              value: audit.h1Count === 1 ? `"${audit.h1Text?.slice(0, 40)}"` : `${audit.h1Count} found`, ok: audit.h1Count === 1 },
+              { icon: List,       label: 'H2 headings',         value: `${audit.h2Count ?? 0} found`,                                                       ok: (audit.h2Count ?? 0) >= 3 },
+              { icon: List,       label: 'Question headings',   value: `${audit.questionHeadings ?? 0} found`,                                             ok: (audit.questionHeadings ?? 0) >= 3 },
+              { icon: List,       label: 'Lists & tables',      value: `${audit.listCount ?? 0} lists, ${audit.tableCount ?? 0} tables`,                   ok: ((audit.listCount ?? 0) + (audit.tableCount ?? 0)) >= 3 },
+              { icon: FileText,   label: 'First para length',   value: `${audit.firstParaWordCount ?? 0} words`,                                           ok: (audit.firstParaWordCount ?? 0) >= 40 && (audit.firstParaWordCount ?? 0) <= 80 },
+              { icon: Image,      label: 'Image alt coverage',  value: audit.imageCount ? `${audit.imageCount - (audit.imagesWithoutAlt ?? 0)}/${audit.imageCount} have alt` : 'No images', ok: (audit.imagesWithoutAlt ?? 0) === 0 },
+              { icon: ExternalLink,label: 'Internal links',     value: `${audit.internalLinks ?? 0} found`,                                                ok: (audit.internalLinks ?? 0) >= 3 },
+            ].map(row => (
+              <div key={row.label} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
+                <row.icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${row.ok ? 'text-green-500' : 'text-red-400'}`} />
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground mb-0.5">{row.label}</div>
+                  <div className="text-sm font-medium text-foreground truncate">{row.value}</div>
                 </div>
               </div>
             ))}
@@ -311,55 +445,38 @@ export default async function ResultsPage({
         </div>
 
         {/* ── CTA ── */}
-        <div className="surface-card rounded-xl p-8 text-center fade-up delay-400">
-          <h2 className="text-xl font-bold text-foreground mb-2">Want help fixing these issues?</h2>
-          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+        <div className="surface-card rounded-2xl p-8 text-center fade-up delay-400 mb-5">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="h-6 w-6 text-primary" />
+          </div>
+          <h2 className="text-xl font-black tracking-tight text-foreground mb-2">
+            Want these fixed — fast?
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto leading-relaxed">
             Marrai offers hands-on AEO implementation for Indian B2B companies.
-            Book a free 30-minute consultation.
+            We handle schema, content, and technical fixes so you rank in AI answers.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href="mailto:hello@marrai.in?subject=AEO Consultation Request"
-              className="inline-flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              href="https://calendly.com/marrai/aeo-consult"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 px-6 rounded-xl font-semibold text-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity inline-flex items-center gap-2 justify-center"
             >
-              Book free consultation
-              <ArrowRight className="h-3.5 w-3.5" />
+              Book free 30-min call
+              <ArrowLeft className="h-3.5 w-3.5 rotate-[135deg]" />
             </a>
             <Link
               href="/audit"
-              className="inline-flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-muted transition-colors"
+              className="h-11 px-6 rounded-xl font-medium text-sm border border-border hover:bg-muted transition-colors inline-flex items-center gap-2 justify-center text-foreground"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Audit another site
+              <Zap className="h-3.5 w-3.5" />
+              Audit another page
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Audit completed{' '}
-          {new Date(audit.createdAt).toLocaleDateString('en-IN', {
-            day: 'numeric', month: 'long', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-          })}
-        </p>
       </main>
     </div>
-  )
-}
-
-/* ── Client component for refresh button ── */
-// Kept separate so the server page doesn't need 'use client'
-function RefreshButton() {
-  // This renders in a server component context, so we use a simple form action
-  // to avoid adding 'use client' to the whole page
-  return (
-    <form action="">
-      <button
-        type="submit"
-        className="h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-      >
-        Refresh
-      </button>
-    </form>
   )
 }

@@ -7,101 +7,94 @@ export async function POST(request: NextRequest) {
   try {
     const { url, email, name } = await request.json()
 
-    // Validate inputs
     if (!url || !email) {
-      return NextResponse.json(
-        { error: 'URL and email are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'URL and email are required' }, { status: 400 })
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
-    // Validate URL format
     let validUrl: string
     try {
       validUrl = new URL(url).href
-    } catch (e) {
-      return NextResponse.json(
-        { error: 'Invalid URL format' },
-        { status: 400 }
-      )
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
     }
 
-    // Create audit record
-    const auditId = await createAudit({
-      url: validUrl,
-      email,
-      name
-    })
-
-    // Update subscriber
+    const auditId = await createAudit({ url: validUrl, email, name })
     await upsertSubscriber(email, name)
 
-    // Run analysis asynchronously
-    analyzeAndUpdate(auditId, validUrl, email, name || 'there')
-      .catch(error => console.error('Background analysis error:', error))
+    // Kick off background analysis — don't await
+    analyzeAndUpdate(auditId, validUrl, email, name || 'there').catch(err =>
+      console.error('Background analysis error:', err)
+    )
 
     return NextResponse.json({ id: auditId })
-
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-async function analyzeAndUpdate(
-  auditId: string,
-  url: string,
-  email: string,
-  name: string
-) {
+async function analyzeAndUpdate(auditId: string, url: string, email: string, name: string) {
   try {
-    // Update status to processing
     await updateAudit(auditId, { status: 'processing' })
 
-    // Run the analysis
     const result = await analyzeWebsite(url)
 
-    // Update audit with results
     await updateAudit(auditId, {
       status: 'completed',
       score: result.score,
+      categoryScores: result.categoryScores,
+
+      // Schema
       hasSchema: result.hasSchema,
       schemaTypes: result.schemaTypes,
+      hasFaqSchema: result.hasFaqSchema,
+      hasArticleSchema: result.hasArticleSchema,
+      hasOrganizationSchema: result.hasOrganizationSchema,
+
+      // Technical
       robotsBlocked: result.robotsBlocked,
+      metaTitle: result.metaTitle,
+      metaDescription: result.metaDescription,
+      hasMetaDescription: result.hasMetaDescription,
+      hasCanonical: result.hasCanonical,
+      hasOgTags: result.hasOgTags,
+
+      // Structure
       hasH1: result.hasH1,
       h1Count: result.h1Count,
       h2Count: result.h2Count,
       h3Count: result.h3Count,
+      h1Text: result.h1Text,
       questionHeadings: result.questionHeadings,
+
+      // Content
+      wordCount: result.wordCount,
       firstParaWordCount: result.firstParaWordCount,
       listCount: result.listCount,
       tableCount: result.tableCount,
+      imageCount: result.imageCount,
+      imagesWithoutAlt: result.imagesWithoutAlt,
+      internalLinks: result.internalLinks,
+      externalLinks: result.externalLinks,
+
+      // Findings
+      findings: result.findings,
       issues: result.issues,
       warnings: result.warnings,
-      recommendations: result.recommendations
+      recommendations: result.recommendations,
     })
 
-    // Send email with results
     await sendAuditEmail(email, name, auditId, result.score)
-
   } catch (error: any) {
     console.error('Analysis failed:', error)
-    
     await updateAudit(auditId, {
       status: 'failed',
-      issues: [error.message || 'Failed to analyze website']
+      issues: [error.message || 'Failed to analyze website'],
     })
   }
 }
