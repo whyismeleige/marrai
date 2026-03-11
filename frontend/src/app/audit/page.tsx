@@ -2,44 +2,35 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, ArrowLeft, Sparkles, Zap, Clock } from 'lucide-react'
+import { Loader2, ArrowLeft, ArrowRight, Cpu, CheckCircle, Clock, Zap } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+
+const TRUST_ITEMS = [
+  { icon: Clock,        label: '< 60s',    sub: 'Analysis time' },
+  { icon: Zap,          label: '100% Free', sub: 'No credit card' },
+  { icon: CheckCircle,  label: '12+',       sub: 'AEO signals' },
+]
 
 export default function AuditPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [formData, setFormData] = useState({
-    url: '',
-    email: '',
-    name: ''
-  })
+  const [formData, setFormData] = useState({ url: '', email: '', name: '' })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
-
       const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong')
-      }
-      
-      if (data.id) {
-        router.push(`/results/${data.id}`)
-      }
+      if (!response.ok) throw new Error(data.error || 'Something went wrong')
+      if (data.id) router.push(`/results/${data.id}`)
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
@@ -48,141 +39,170 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="min-h-screen py-12 relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
-      
-      <div className="container mx-auto px-4 relative">
-        <div className="max-w-2xl mx-auto">
-          <Link 
+    <div className="min-h-screen flex flex-col bg-background">
+
+      {/* Nav */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-[7px] bg-primary flex items-center justify-center">
+              <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-[15px] tracking-tight text-foreground">Marrai</span>
+          </Link>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <main className="flex-1 flex items-center justify-center px-5 py-16">
+        <div className="w-full max-w-md">
+
+          {/* Back */}
+          <Link
             href="/"
-            className="inline-flex items-center text-muted-foreground hover:text-foreground mb-8 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to home
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
           </Link>
 
-          <Card className="glass-card neon-border p-8">
-            <CardContent className="pt-0">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 mb-4 border border-cyan-500/30">
-                  <Sparkles className="h-8 w-8 text-cyan-400" />
-                </div>
-                <h1 className="text-3xl font-bold mb-2 text-gradient">Get Started with Marrai</h1>
-                <p className="text-muted-foreground">
-                  Start your AI-powered marketing journey in 2 minutes
+          {/* Card */}
+          <div className="surface-card rounded-xl p-8">
+
+            {/* Header */}
+            <div className="mb-8">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
+                <Cpu className="h-5 w-5 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
+                Run your free AEO audit
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Enter a URL and we'll analyse it for AI search visibility in under 60 seconds.
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Website URL
+                  <span className="text-destructive ml-1">*</span>
+                </label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://yourwebsite.com"
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  className="
+                    w-full h-10 px-3 rounded-lg text-sm
+                    bg-input border border-border
+                    text-foreground placeholder:text-muted-foreground
+                    focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
+                    transition-shadow
+                  "
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Your name
+                  <span className="text-destructive ml-1">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Rahul Sharma"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="
+                    w-full h-10 px-3 rounded-lg text-sm
+                    bg-input border border-border
+                    text-foreground placeholder:text-muted-foreground
+                    focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
+                    transition-shadow
+                  "
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Email
+                  <span className="text-destructive ml-1">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@company.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="
+                    w-full h-10 px-3 rounded-lg text-sm
+                    bg-input border border-border
+                    text-foreground placeholder:text-muted-foreground
+                    focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
+                    transition-shadow
+                  "
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  We'll email your full report. No spam.
                 </p>
               </div>
 
               {error && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
+                <div className="px-3 py-2.5 rounded-lg bg-destructive/10 border border-destructive/25 text-destructive text-sm">
                   {error}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="url" className="text-foreground">
-                    Website URL <span className="text-cyan-400">*</span>
-                  </Label>
-                  <Input
-                    id="url"
-                    type="url"
-                    required
-                    placeholder="https://example.com"
-                    className="bg-background/50 border-white/10 focus:border-cyan-500 focus:ring-cyan-500/20"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Enter your homepage or any important page
-                  </p>
-                </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="
+                  w-full h-10 rounded-lg text-sm font-semibold
+                  bg-primary text-primary-foreground
+                  hover:opacity-90 active:scale-[0.99]
+                  disabled:opacity-60 disabled:cursor-not-allowed
+                  transition-all inline-flex items-center justify-center gap-2
+                  mt-2
+                "
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analysing…
+                  </>
+                ) : (
+                  <>
+                    Analyse my site
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground">
-                    Your Email <span className="text-cyan-400">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    placeholder="you@company.com"
-                    className="bg-background/50 border-white/10 focus:border-cyan-500 focus:ring-cyan-500/20"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    We&apos;ll send your detailed report here
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-foreground">
-                    Your Name <span className="text-muted-foreground">(Optional)</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    className="bg-background/50 border-white/10 focus:border-cyan-500 focus:ring-cyan-500/20"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 border-0 h-12 text-base"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Analyzing your website...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="mr-2 h-5 w-5" />
-                      Get My Free Analysis →
-                    </>
-                  )}
-                </Button>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  By submitting, you agree to receive the audit report and occasional 
-                  emails about Marrai updates and marketing tips. Unsubscribe anytime.
-                </p>
-              </form>
-
-              <div className="mt-8 pt-6 border-t border-white/10">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 rounded-lg bg-white/5">
-                    <Clock className="h-5 w-5 text-cyan-400 mx-auto mb-1" />
-                    <div className="font-semibold text-foreground">2 min</div>
-                    <div className="text-xs text-muted-foreground">Analysis Time</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-white/5">
-                    <Zap className="h-5 w-5 text-purple-400 mx-auto mb-1" />
-                    <div className="font-semibold text-foreground">100% Free</div>
-                    <div className="text-xs text-muted-foreground">No Credit Card</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-white/5">
-                    <Sparkles className="h-5 w-5 text-cyan-400 mx-auto mb-1" />
-                    <div className="font-semibold text-foreground">Instant</div>
-                    <div className="text-xs text-muted-foreground">Email Delivery</div>
-                  </div>
-                </div>
+          {/* Trust bar */}
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {TRUST_ITEMS.map((item) => (
+              <div
+                key={item.label}
+                className="flex flex-col items-center gap-1 p-3 rounded-lg bg-muted/50 text-center"
+              >
+                <item.icon className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                <span className="text-xs text-muted-foreground">{item.sub}</span>
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+
+          <p className="text-xs text-center text-muted-foreground mt-4 px-4">
+            By submitting you agree to receive your audit report and occasional updates.
+            Unsubscribe anytime.
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

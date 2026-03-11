@@ -1,205 +1,309 @@
 import Link from 'next/link'
-import { ArrowRight, Search, TrendingUp, Zap, Sparkles, Target, Cpu } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import {
+  ArrowRight, CheckCircle, Search, TrendingUp,
+  Zap, Target, Cpu, FileText, MessageSquare,
+  BarChart3, Globe, ChevronRight
+} from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+
+const FEATURES = [
+  {
+    icon: FileText,
+    title: 'Schema Markup',
+    desc: 'Detects structured data AI engines use to understand your content context.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'Question Headings',
+    desc: 'Checks if your content answers natural language queries the way AI tools expect.',
+  },
+  {
+    icon: Globe,
+    title: 'Content Structure',
+    desc: 'Evaluates paragraph length, list usage, and overall readability for AI parsing.',
+  },
+  {
+    icon: Search,
+    title: 'Meta Clarity',
+    desc: 'Reviews titles, descriptions, and canonical signals for AI content indexing.',
+  },
+  {
+    icon: BarChart3,
+    title: 'AI Visibility Score',
+    desc: 'A single 0–100 score that benchmarks your AEO readiness at a glance.',
+  },
+  {
+    icon: Target,
+    title: 'Prioritised Fixes',
+    desc: 'Ranked, actionable issues so you know exactly what to tackle first.',
+  },
+]
+
+const STEPS = [
+  { n: '01', title: 'Enter your URL', desc: 'Paste any page — homepage, product page, or blog post.' },
+  { n: '02', title: 'We analyse it', desc: 'Our engine checks 12+ AEO signals in under 60 seconds.' },
+  { n: '03', title: 'Get your report', desc: 'Receive a full audit with a score, issues, and fix priority.' },
+]
+
+const STATS = [
+  { value: '73%', label: 'of B2B buyers use AI tools before Google' },
+  { value: '12+', label: 'AEO signals checked per audit' },
+  { value: '<60s', label: 'to get your full report' },
+]
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-white/10 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
-              <div className="absolute inset-0 rounded-lg bg-cyan-400/30 blur-lg" />
+    <div className="min-h-screen flex flex-col">
+
+      {/* ── Nav ────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-7 h-7 rounded-[7px] bg-primary flex items-center justify-center shrink-0">
+              <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-gradient">Marrai</span>
-          </div>
-          <Link href="/audit">
-            <Button className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 border-0">
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <span className="font-semibold text-[15px] tracking-tight text-foreground">
+              Marrai
+            </span>
           </Link>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/audit"
+              className="
+                h-8 px-3.5 rounded-md text-sm font-medium
+                bg-primary text-primary-foreground
+                hover:opacity-90 transition-opacity
+                inline-flex items-center gap-1.5
+              "
+            >
+              Free Audit
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </header>
 
-      <section className="container mx-auto px-4 py-20 text-center relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="max-w-4xl mx-auto relative">
-          <Badge className="mb-6 bg-cyan-500/20 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/30">
-            <Zap className="w-3 h-3 mr-1" />
-            AI Search is the Future
-          </Badge>
-          
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Is Your Business{' '}
-            <span className="text-gradient">Invisible to AI?</span>
+      <main className="flex-1">
+
+        {/* ── Hero ───────────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-5 pt-24 pb-20 text-center">
+
+          {/* Eyebrow */}
+          <div className="inline-flex items-center gap-2 h-7 px-3 rounded-full border border-border bg-muted text-muted-foreground text-xs font-medium mb-8 fade-up">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            Answer Engine Optimization
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-5xl md:text-7xl font-black tracking-[-0.04em] leading-[0.95] text-foreground mb-6 fade-up delay-100">
+            Your business is<br />
+            <span>invisible to AI.</span>
           </h1>
-          
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Discover the future of marketing with Marrai. Get powerful AI-powered 
-            marketing insights and stay ahead of your competition.
+
+          {/* Sub */}
+          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed fade-up delay-200">
+            AI tools like ChatGPT, Perplexity, and Gemini now shape buying decisions.
+            Find out if you're being recommended — or ignored.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <Link href="/audit">
-              <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 border-0 text-lg px-8 py-6 animate-pulse-glow">
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 fade-up delay-300">
+            <Link
+              href="/audit"
+              className="
+                h-11 px-6 rounded-lg text-sm font-semibold
+                bg-primary text-primary-foreground
+                hover:opacity-90 active:scale-[0.98]
+                transition-all inline-flex items-center gap-2
+              "
+            >
+              Run Free Audit
+              <ArrowRight className="h-4 w-4" />
             </Link>
+            <a
+              href="#how-it-works"
+              className="
+                h-11 px-6 rounded-lg text-sm font-medium
+                border border-border text-foreground
+                hover:bg-muted transition-colors
+                inline-flex items-center gap-2
+              "
+            >
+              How it works
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </a>
           </div>
-          
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              No credit card required
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              Results in 2 minutes
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-              100% free forever
-            </div>
+        </section>
+
+        {/* ── Stats strip ────────────────────────────────────── */}
+        <div className="border-y border-border bg-muted/30">
+          <div className="max-w-3xl mx-auto px-5 py-10 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+            {STATS.map((s) => (
+              <div key={s.value}>
+                <div className="text-3xl font-black tracking-tight text-foreground mb-1">{s.value}</div>
+                <div className="text-sm text-muted-foreground">{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
-      </section>
 
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4">
-            The Problem: AI Search is Replacing Google
-          </h2>
-          <p className="text-center text-muted-foreground mb-12">
-            While you&apos;re optimizing for traditional SEO, your customers are using AI
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="glass-card neon-border p-6">
-              <CardContent className="pt-0">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mb-4 border border-red-500/30">
-                  <Search className="h-7 w-7 text-red-400" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">73% Use AI Search</h3>
-                <p className="text-muted-foreground text-sm">
-                  B2B buyers use ChatGPT and Perplexity before Google
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="glass-card neon-border p-6">
-              <CardContent className="pt-0">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 flex items-center justify-center mb-4 border border-orange-500/30">
-                  <TrendingUp className="h-7 w-7 text-orange-400" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Growing Fast</h3>
-                <p className="text-muted-foreground text-sm">
-                  AI search traffic could surpass Google in 2-4 years
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="glass-card neon-border p-6">
-              <CardContent className="pt-0">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500/20 to-cyan-500/20 flex items-center justify-center mb-4 border border-green-500/30">
-                  <Zap className="h-7 w-7 text-green-400" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">Fixable Now</h3>
-                <p className="text-muted-foreground text-sm">
-                  Answer Engine Optimization ensures you&apos;re recommended
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-cyan-5/10" />
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-4">
-              What Marrai Offers
+        {/* ── Problem ────────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-5 py-20">
+          <div className="max-w-2xl mb-14">
+            <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-3">The Problem</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4">
+              The AI search revolution<br className="hidden md:block" /> is already here
             </h2>
-            <p className="text-center text-muted-foreground mb-12">
-              Comprehensive analysis powered by advanced AI
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Traditional SEO won't save you. AI engines use different signals — and most
+              businesses have zero visibility into how they score.
             </p>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              {[
-                { icon: Target, title: 'AI Visibility Score', desc: 'Comprehensive breakdown of your brand presence in AI' },
-                { icon: Cpu, title: 'Marketing Intelligence', desc: 'Deep insights into your market positioning' },
-                { icon: Search, title: 'Content Analysis', desc: 'Optimize your content for maximum impact' },
-                { icon: Zap, title: 'Actionable Insights', desc: 'Data-driven recommendations for growth' },
-                { icon: Sparkles, title: 'Instant Analysis', desc: 'Get results in minutes, not weeks' },
-                { icon: TrendingUp, title: 'Growth Roadmap', desc: 'Clear strategy to scale your business' },
-              ].map((item, i) => (
-                <Card key={i} className="glass-card border-white/10 p-4 hover:border-cyan-500/30 transition-all duration-300">
-                  <CardContent className="pt-0 flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 border border-cyan-500/20">
-                      <item.icon className="h-5 w-5 text-cyan-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground">{item.title}</h4>
-                      <p className="text-sm text-muted-foreground">{item.desc}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              {
+                icon: TrendingUp,
+                stat: '73%',
+                title: 'B2B buyers use AI first',
+                desc: 'Decision-makers are asking ChatGPT and Perplexity before they ever hit Google.',
+              },
+              {
+                icon: Zap,
+                stat: '2–4 yrs',
+                title: 'AI search surpasses Google',
+                desc: 'Analysts project AI-driven discovery will overtake traditional search within this decade.',
+              },
+              {
+                icon: CheckCircle,
+                stat: 'Day 1',
+                title: 'Fixable right now',
+                desc: 'AEO improvements are structural and technical — you can act on them immediately.',
+              },
+            ].map((card) => (
+              <div
+                key={card.title}
+                className="surface-card-hover p-6 rounded-xl"
+              >
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <card.icon className="h-4.5 w-4.5 text-primary" />
+                </div>
+                <div className="text-2xl font-black tracking-tight text-foreground mb-1">{card.stat}</div>
+                <h3 className="font-semibold text-foreground text-sm mb-2">{card.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Features ───────────────────────────────────────── */}
+        <section className="border-t border-border bg-muted/20">
+          <div className="max-w-6xl mx-auto px-5 py-20">
+            <div className="max-w-xl mb-14">
+              <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-3">What We Analyse</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4">
+                12+ signals, one clear score
+              </h2>
+              <p className="text-muted-foreground text-base leading-relaxed">
+                Every audit checks the exact factors that determine whether AI engines cite your content.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {FEATURES.map((f) => (
+                <div key={f.title} className="surface-card-hover p-5 rounded-xl flex gap-4">
+                  <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <f.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm mb-1">{f.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                </div>
               ))}
             </div>
-            
-            <div className="mt-12 text-center">
-              <Link href="/audit">
-                <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 border-0 text-lg px-8 py-6">
-                  Get Started Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-2xl mx-auto text-center">
-          <h3 className="text-lg font-semibold mb-4">Trusted by businesses optimizing for the future</h3>
-          <div className="flex justify-center items-center gap-8 text-sm text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-gradient-to-br from-cyan-500/30 to-purple-500/30 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-cyan-400" />
-              </div>
-              <span>Fast Analysis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-gradient-to-br from-cyan-500/30 to-purple-500/30 flex items-center justify-center">
-                <Search className="h-4 w-4 text-cyan-400" />
-              </div>
-              <span>Detailed Reports</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-gradient-to-br from-cyan-500/30 to-purple-500/30 flex items-center justify-center">
-                <Target className="h-4 w-4 text-cyan-400" />
-              </div>
-              <span>Actionable Insights</span>
-            </div>
+        {/* ── How it works ───────────────────────────────────── */}
+        <section id="how-it-works" className="max-w-6xl mx-auto px-5 py-20">
+          <div className="max-w-xl mb-14">
+            <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-3">Process</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+              Three steps to clarity
+            </h2>
           </div>
-        </div>
-      </section>
 
-      <footer className="border-t border-white/10 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground mb-2">Built for businesses by a 20-year-old developer</p>
-          <p className="text-sm text-muted-foreground/60">Building in public</p>
+          <div className="grid md:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden border border-border">
+            {STEPS.map((step, i) => (
+              <div
+                key={step.n}
+                className="bg-background p-8 relative"
+              >
+                {/* Connector arrow for md+ */}
+                {i < STEPS.length - 1 && (
+                  <div className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10">
+                    <div className="w-5 h-5 rounded-full border border-border bg-background flex items-center justify-center">
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </div>
+                )}
+                <div className="text-xs font-black tracking-widest text-primary mb-4">{step.n}</div>
+                <h3 className="font-semibold text-foreground mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── CTA ────────────────────────────────────────────── */}
+        <section className="border-t border-border">
+          <div className="max-w-3xl mx-auto px-5 py-24 text-center">
+            <h2 className="text-4xl md:text-5xl font-black tracking-[-0.03em] text-foreground mb-4">
+              See how you score
+            </h2>
+            <p className="text-muted-foreground text-lg mb-10 max-w-md mx-auto">
+              Free. No credit card. Results in under 60 seconds.
+            </p>
+            <Link
+              href="/audit"
+              className="
+                inline-flex items-center gap-2
+                h-12 px-8 rounded-lg text-base font-semibold
+                bg-primary text-primary-foreground
+                hover:opacity-90 active:scale-[0.98]
+                transition-all
+              "
+            >
+              Get Free AEO Audit
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      {/* ── Footer ─────────────────────────────────────────── */}
+      <footer className="border-t border-border">
+        <div className="max-w-6xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-[6px] bg-primary flex items-center justify-center">
+              <Cpu className="h-3 w-3 text-primary-foreground" />
+            </div>
+            <span className="text-sm font-semibold text-foreground">Marrai</span>
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            Built in Hyderabad — helping Indian businesses win AI search
+          </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <Link href="/audit" className="hover:text-foreground transition-colors">
+              Free Audit
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

@@ -1,313 +1,365 @@
 import { getAudit } from '@/lib/mongodb'
 import { notFound } from 'next/navigation'
-import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, Loader2, Cpu, Database, FileText, List, Sparkles } from 'lucide-react'
+import {
+  CheckCircle, XCircle, ArrowLeft,
+  Loader2, Cpu, FileText, List, ArrowRight, RotateCcw
+} from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-export default async function ResultsPage({ 
-  params 
-}: { 
-  params: { id: string } 
-}) {
-  const audit = await getAudit(params.id)
+/* ── Helpers ────────────────────────────────────────── */
+function getGrade(score: number) {
+  if (score >= 80) return { grade: 'A', label: 'Excellent', cls: 'status-good' }
+  if (score >= 60) return { grade: 'B', label: 'Good',      cls: 'text-primary' }
+  if (score >= 40) return { grade: 'C', label: 'Fair',      cls: 'status-warn'  }
+  return              { grade: 'D', label: 'Needs work', cls: 'status-bad'   }
+}
 
-  if (!audit) {
-    notFound()
-  }
-
-  if (audit.status === 'pending' || audit.status === 'processing') {
-    return (
-      <div className="min-h-screen flex items-center justify-center py-12 relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
-        </div>
-        <div className="text-center max-w-md mx-auto p-8 relative">
-          <div className="relative inline-block mb-6">
-            <div className="animate-spin rounded-full h-24 w-24 border-4 border-cyan-500/30 border-t-cyan-400 mx-auto" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Cpu className="h-10 w-10 text-cyan-400" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-2 text-gradient">Analyzing your website...</h2>
-          <p className="text-muted-foreground mb-4">This usually takes 30-60 seconds</p>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-400" /> Fetching your webpage</p>
-            <p className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-400" /> Checking schema markup</p>
-            <p className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-400" /> Analyzing content structure</p>
-            <p className="flex items-center gap-2 animate-pulse"><Loader2 className="h-4 w-4 text-cyan-400 animate-spin" /> Calculating your score...</p>
-          </div>
-          <Button onClick={() => window.location.reload()} className="mt-6 bg-gradient-to-r from-cyan-500 to-purple-500">
-            Refresh Results
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (audit.status === 'failed') {
-    return (
-      <div className="min-h-screen flex items-center justify-center py-12 relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
-        </div>
-        <Card className="max-w-md mx-auto p-8 glass-card neon-border relative">
-          <CardContent className="pt-0 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-4 border border-red-500/30">
-              <XCircle className="h-10 w-10 text-red-400" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Analysis Failed</h2>
-            <p className="text-muted-foreground mb-4">{audit.issues[0] || 'Something went wrong'}</p>
-            <Link href="/audit">
-              <Button className="bg-gradient-to-r from-cyan-500 to-purple-500">Try Again</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const getGrade = (score: number) => {
-    if (score >= 80) return { grade: 'A', color: 'text-green-400', bgColor: 'bg-green-500/20', borderColor: 'border-green-500/30', message: 'Excellent! Your page is well-optimized for AI search.' };
-    if (score >= 60) return { grade: 'B', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20', borderColor: 'border-cyan-500/30', message: 'Good start, but there\'s room for improvement.' }
-    if (score >= 40) return { grade: 'C', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/30', message: 'Moderate optimization needed.' }
-    return { grade: 'D', color: 'text-red-400', bgColor: 'bg-red-500/20', borderColor: 'border-red-500/30', message: 'Significant improvements required for AI visibility.' }
-  }
-
-  const { grade, color, bgColor, borderColor, message } = getGrade(audit.score)
+function ScoreRing({ score }: { score: number }) {
+  const r = 40
+  const circumference = 2 * Math.PI * r
+  const offset = circumference - (score / 100) * circumference
+  const color =
+    score >= 80 ? '#22c55e' :
+    score >= 60 ? '#6366f1' :
+    score >= 40 ? '#f59e0b' : '#ef4444'
 
   return (
-    <div className="min-h-screen py-12 relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl" />
-      </div>
-      
-      <div className="container mx-auto px-4 max-w-4xl relative">
-        <Link 
-          href="/"
-          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to home
-        </Link>
+    <svg width="110" height="110" viewBox="0 0 110 110" className="-rotate-90">
+      <circle cx="55" cy="55" r={r} fill="none" strokeWidth="8" className="stroke-border" />
+      <circle
+        cx="55" cy="55" r={r}
+        fill="none"
+        strokeWidth="8"
+        stroke={color}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
+      />
+    </svg>
+  )
+}
 
-        <Card className="glass-card neon-border p-8 mb-6">
-          <CardHeader className="pb-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-2 text-gradient">Your Marrai Analysis Results</h1>
-                <p className="text-muted-foreground break-all text-sm">{audit.url}</p>
-              </div>
-              <Badge className={`${bgColor} ${borderColor} border text-lg px-4 py-1`}>
-                <Sparkles className="w-4 h-4 mr-1" />
-                AI Powered
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-12 border-y border-white/10 my-6 relative">
-              <div className={`inline-block ${bgColor} ${borderColor} border rounded-2xl px-8 py-6 mb-4`}>
-                <div className={`text-7xl font-bold ${color}`}>
-                  {audit.score}<span className="text-2xl text-muted-foreground">/100</span>
-                </div>
-              </div>
-              <div className="text-4xl font-bold mb-2">
-                <span className={color}>Grade: {grade}</span>
-              </div>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                {message}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-              <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="text-2xl font-bold text-cyan-400 mb-1">
-                  {audit.hasSchema ? <CheckCircle className="h-8 w-8 mx-auto" /> : <XCircle className="h-8 w-8 mx-auto text-red-400" />}
-                </div>
-                <div className="text-sm text-muted-foreground">Schema Markup</div>
-              </div>
-              <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="text-2xl font-bold text-foreground">{audit.h1Count}</div>
-                <div className="text-sm text-muted-foreground">H1 Tags</div>
-              </div>
-              <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="text-2xl font-bold text-foreground">{audit.questionHeadings}</div>
-                <div className="text-sm text-muted-foreground">Question Headings</div>
-              </div>
-              <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className="text-2xl font-bold text-foreground">{audit.listCount + audit.tableCount}</div>
-                <div className="text-sm text-muted-foreground">Structured Elements</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {audit.issues.length > 0 && (
-          <Card className="glass-card border-red-500/30 mb-6 p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-red-400">
-                <XCircle className="h-6 w-6" />
-                Critical Issues ({audit.issues.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                These issues are preventing your page from appearing in AI search results:
-              </p>
-              <ul className="space-y-3">
-                {audit.issues.map((issue, i) => (
-                  <li key={i} className="flex items-start bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                    <span className="text-red-400 mr-3 font-bold text-lg">•</span>
-                    <span className="text-foreground">{issue}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {audit.warnings.length > 0 && (
-          <Card className="glass-card border-yellow-500/30 mb-6 p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-yellow-400">
-                <AlertTriangle className="h-6 w-6" />
-                Warnings ({audit.warnings.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                These issues may reduce your AI visibility:
-              </p>
-              <ul className="space-y-3">
-                {audit.warnings.map((warning, i) => (
-                  <li key={i} className="flex items-start bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
-                    <span className="text-yellow-400 mr-3 font-bold text-lg">•</span>
-                    <span className="text-foreground">{warning}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="glass-card border-cyan-500/30 mb-6 p-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-cyan-400">
-              <CheckCircle className="h-6 w-6" />
-              Recommendations ({audit.recommendations.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Follow these steps to improve your AI visibility:
-            </p>
-            <ol className="space-y-3">
-              {audit.recommendations.map((rec, i) => (
-                <li key={i} className="flex items-start bg-cyan-500/10 p-3 rounded-lg border border-cyan-500/20">
-                  <span className="text-cyan-400 mr-3 font-bold">{i + 1}.</span>
-                  <span className="text-foreground">{rec}</span>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-white/10 mb-6 p-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-cyan-400" />
-              Technical Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 text-sm">
-              <div className="p-3 rounded-lg bg-white/5">
-                <div className="text-muted-foreground mb-1 flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  Schema Types Found
-                </div>
-                <div className="text-foreground font-medium">
-                  {audit.schemaTypes.length > 0 
-                    ? audit.schemaTypes.join(', ')
-                    : 'None detected'}
-                </div>
-              </div>
-              <div className="p-3 rounded-lg bg-white/5">
-                <div className="text-muted-foreground mb-1 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Robots.txt Status
-                </div>
-                <div className={audit.robotsBlocked ? 'text-red-400' : 'text-green-400'}>
-                  {audit.robotsBlocked ? 'AI bots blocked' : 'AI bots allowed'}
-                </div>
-              </div>
-              <div className="p-3 rounded-lg bg-white/5">
-                <div className="text-muted-foreground mb-1 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  First Paragraph
-                </div>
-                <div className="text-foreground font-medium">
-                  {audit.firstParaWordCount} words
-                  {audit.firstParaWordCount >= 40 && audit.firstParaWordCount <= 80 && (
-                    <span className="text-green-400 ml-2">✓ (optimal)</span>
-                  )}
-                  {!(audit.firstParaWordCount >= 40 && audit.firstParaWordCount <= 80) && (
-                    <span className="text-yellow-400 ml-2">(40-80 recommended)</span>
-                  )}
-                </div>
-              </div>
-              <div className="p-3 rounded-lg bg-white/5">
-                <div className="text-muted-foreground mb-1 flex items-center gap-2">
-                  <List className="h-4 w-4" />
-                  Structured Content
-                </div>
-                <div className="text-foreground font-medium">
-                  {audit.listCount} lists, {audit.tableCount} tables
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card neon-border p-8 text-center gradient-border relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-cyan-500/10" />
-          <div className="relative">
-            <h2 className="text-3xl font-bold mb-4">
-              Need Help Growing Your Business?
-            </h2>
-            <p className="text-muted-foreground text-lg mb-6">
-              Marrai specializes in AI-powered marketing solutions. 
-              Let us help you transform your digital presence.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href="mailto:your.email@gmail.com?subject=Marrai Help Request">
-                <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-purple-500">
-                  Schedule Free Consultation
-                </Button>
-              </a>
-              <Link href="/audit">
-                <Button size="lg" variant="outline" className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
-                  Analyze Another Site
-                </Button>
-              </Link>
-            </div>
+/* ── Shared nav ─────────────────────────────────────── */
+function Header() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-[7px] bg-primary flex items-center justify-center">
+            <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-        </Card>
+          <span className="font-semibold text-[15px] tracking-tight text-foreground">Marrai</span>
+        </Link>
+        <ThemeToggle />
+      </div>
+    </header>
+  )
+}
 
-        <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>Audit completed on {new Date(audit.createdAt).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}</p>
+/* ── Page ───────────────────────────────────────────── */
+export default async function ResultsPage({
+  params,
+}: {
+  params: Promise<{ id: string }> // ✅ Next.js 15: params is a Promise
+}) {
+  const { id } = await params // ✅ must be awaited
+
+  const audit = await getAudit(id)
+  if (!audit) notFound()
+
+  /* ── Pending / processing ── */
+  if (audit.status === 'pending' || audit.status === 'processing') {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <div className="flex-1 flex items-center justify-center px-5 py-20">
+          <div className="text-center max-w-sm">
+            <div className="relative w-16 h-16 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
+              <div className="w-16 h-16 rounded-full border-2 border-border border-t-primary animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Cpu className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-foreground mb-2">Analysing your site…</h2>
+            <p className="text-sm text-muted-foreground mb-6">This takes 30–60 seconds</p>
+            <div className="space-y-2 text-sm text-left bg-muted/50 rounded-lg p-4 mb-6">
+              {[
+                'Fetching your webpage',
+                'Checking schema markup',
+                'Analysing content structure',
+                'Calculating your score',
+              ].map((s, i) => (
+                <div key={s} className="flex items-center gap-2">
+                  {i < 3 ? (
+                    <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                  ) : (
+                    <Loader2 className="h-3.5 w-3.5 text-primary animate-spin shrink-0" />
+                  )}
+                  <span className={i < 3 ? 'text-muted-foreground' : 'text-foreground'}>{s}</span>
+                </div>
+              ))}
+            </div>
+            {/* Client refresh — extracted to avoid 'use client' on server page */}
+            <RefreshButton />
+          </div>
         </div>
       </div>
+    )
+  }
+
+  /* ── Failed ── */
+  if (audit.status === 'failed') {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <div className="flex-1 flex items-center justify-center px-5 py-20">
+          <div className="surface-card rounded-xl p-8 max-w-sm w-full text-center">
+            <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <XCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground mb-2">Analysis failed</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              {audit.issues?.[0] || 'Something went wrong. Please try again.'}
+            </p>
+            <Link
+              href="/audit"
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Try again
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Completed ── */
+  const { grade, label, cls } = getGrade(audit.score)
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+
+      <main className="flex-1 max-w-3xl mx-auto w-full px-5 py-12">
+
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </Link>
+
+        {/* ── Score card ── */}
+        <div className="surface-card rounded-xl p-8 mb-4 fade-up">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+            <div className="relative shrink-0">
+              <ScoreRing score={audit.score} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-foreground leading-none">{audit.score}</span>
+                <span className="text-xs text-muted-foreground">/100</span>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-3xl font-black ${cls}`}>Grade {grade}</span>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${
+                  audit.score >= 80 ? 'bg-green-500/10 border-green-500/25 text-green-600 dark:text-green-400'
+                  : audit.score >= 60 ? 'bg-primary/10 border-primary/25 text-primary'
+                  : audit.score >= 40 ? 'bg-yellow-500/10 border-yellow-500/25 text-yellow-700 dark:text-yellow-400'
+                  : 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-400'
+                }`}>{label}</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3 break-all">{audit.url}</p>
+              <p className="text-sm text-foreground">
+                {audit.score >= 80
+                  ? 'Your page is well-optimised for AI search. Keep it up.'
+                  : audit.score >= 60
+                  ? 'Good start — a few targeted improvements will significantly boost your score.'
+                  : audit.score >= 40
+                  ? 'Moderate optimisation needed. Address the issues below to improve your visibility.'
+                  : 'Significant AEO work needed. Start with the critical issues below.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-border">
+            {[
+              { label: 'Schema Markup', value: audit.hasSchema ? '✓ Present' : '✗ Missing', ok: audit.hasSchema },
+              { label: 'H1 Tags',       value: String(audit.h1Count),          ok: audit.h1Count === 1 },
+              { label: 'Q Headings',    value: String(audit.questionHeadings), ok: audit.questionHeadings > 0 },
+              { label: 'Structured',    value: `${audit.listCount + audit.tableCount} elements`, ok: (audit.listCount + audit.tableCount) > 0 },
+            ].map((item) => (
+              <div key={item.label} className="bg-muted/40 rounded-lg p-3">
+                <div className={`text-base font-bold mb-0.5 ${item.ok ? 'status-good' : 'status-bad'}`}>
+                  {item.value}
+                </div>
+                <div className="text-xs text-muted-foreground">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Critical issues ── */}
+        {audit.issues?.length > 0 && (
+          <div className="surface-card rounded-xl p-6 mb-4 fade-up delay-100">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-7 h-7 rounded-md bg-destructive/10 flex items-center justify-center">
+                <XCircle className="h-4 w-4 text-destructive" />
+              </div>
+              <h2 className="font-semibold text-foreground">
+                Critical Issues
+                <span className="ml-2 text-xs font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">
+                  {audit.issues.length}
+                </span>
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {audit.issues.map((issue: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-3 rounded-lg border border-destructive/15 bg-destructive/5"
+                >
+                  <XCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground">{issue}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Recommendations ── */}
+        {audit.recommendations?.length > 0 && (
+          <div className="surface-card rounded-xl p-6 mb-4 fade-up delay-200">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 text-primary" />
+              </div>
+              <h2 className="font-semibold text-foreground">
+                Recommendations
+                <span className="ml-2 text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                  {audit.recommendations.length}
+                </span>
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {audit.recommendations.map((rec: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-3 rounded-lg border border-primary/15 bg-primary/5"
+                >
+                  <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[10px] font-bold text-primary">{i + 1}</span>
+                  </div>
+                  <span className="text-sm text-foreground">{rec}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Content details ── */}
+        <div className="surface-card rounded-xl p-6 mb-4 fade-up delay-300">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <h2 className="font-semibold text-foreground">Content Details</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {[
+              {
+                icon: List,
+                label: 'Word count',
+                value: `${audit.listCount ?? '—'} words`, // ✅ fixed: was audit.listCount
+                note: (audit.listCount ?? 0) < 300 ? '(300+ recommended)' : null,
+              },
+              {
+                icon: FileText,
+                label: 'First paragraph',
+                value: `${audit.firstParaWordCount} words`,
+                note: (audit.firstParaWordCount < 40 || audit.firstParaWordCount > 80) ? '(40–80 recommended)' : null,
+              },
+              {
+                icon: List,
+                label: 'Structured content',
+                value: `${audit.listCount} lists, ${audit.tableCount} tables`,
+                note: null,
+              },
+              {
+                icon: FileText,
+                label: 'Heading structure',
+                value: `${audit.h1Count} H1, ${audit.questionHeadings} question headings`,
+                note: null,
+              },
+            ].map((item) => (
+              <div key={item.label} className="p-3 rounded-lg bg-muted/40">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                  <item.icon className="h-3 w-3" />
+                  {item.label}
+                </div>
+                <div className="text-sm font-medium text-foreground">
+                  {item.value}
+                  {item.note && <span className="ml-1.5 text-xs status-warn">{item.note}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── CTA ── */}
+        <div className="surface-card rounded-xl p-8 text-center fade-up delay-400">
+          <h2 className="text-xl font-bold text-foreground mb-2">Want help fixing these issues?</h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+            Marrai offers hands-on AEO implementation for Indian B2B companies.
+            Book a free 30-minute consultation.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="mailto:hello@marrai.in?subject=AEO Consultation Request"
+              className="inline-flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Book free consultation
+              <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+            <Link
+              href="/audit"
+              className="inline-flex items-center justify-center gap-2 h-9 px-5 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-muted transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Audit another site
+            </Link>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          Audit completed{' '}
+          {new Date(audit.createdAt).toLocaleDateString('en-IN', {
+            day: 'numeric', month: 'long', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          })}
+        </p>
+      </main>
     </div>
+  )
+}
+
+/* ── Client component for refresh button ── */
+// Kept separate so the server page doesn't need 'use client'
+function RefreshButton() {
+  // This renders in a server component context, so we use a simple form action
+  // to avoid adding 'use client' to the whole page
+  return (
+    <form action="">
+      <button
+        type="submit"
+        className="h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+      >
+        Refresh
+      </button>
+    </form>
   )
 }

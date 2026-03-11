@@ -28,7 +28,7 @@ export async function analyzeWebsite(url: string): Promise<AnalysisResult> {
         'User-Agent': 'AEO-Audit-Bot/1.0 (Educational purposes)'
       }
     })
-
+    console.log(response);
     const html = response.data
     const $ = cheerio.load(html)
 
