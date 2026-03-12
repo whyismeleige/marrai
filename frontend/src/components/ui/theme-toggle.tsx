@@ -24,26 +24,24 @@ export function ThemeToggle() {
     }
   }
 
-  if (!mounted) {
-    return <div className="w-8 h-8" />
-  }
+  if (!mounted) return <div className="w-8 h-8" />
 
   return (
     <button
       onClick={toggle}
-      aria-label="Toggle theme"
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       className="
-        w-8 h-8 rounded-md flex items-center justify-center
+        w-8 h-8 rounded-lg flex items-center justify-center
         text-muted-foreground hover:text-foreground
-        hover:bg-muted
+        hover:bg-muted/70 border border-transparent
+        hover:border-border/60
         transition-all duration-150
-        border border-transparent hover:border-border
       "
     >
       {isDark ? (
-        <Sun className="h-4 w-4" />
+        <Sun className="h-[15px] w-[15px]" />
       ) : (
-        <Moon className="h-4 w-4" />
+        <Moon className="h-[15px] w-[15px]" />
       )}
     </button>
   )
