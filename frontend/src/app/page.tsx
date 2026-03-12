@@ -6,6 +6,7 @@ import {
   Search, Sparkles,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import NavAuthButtons from '@/components/ui/nav-auth-buttons'
 
 /* ── Data ─────────────────────────────────────────────────── */
 
@@ -134,13 +135,7 @@ function Nav() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link
-            href="/audit"
-            className="btn-primary h-8 px-4 text-xs"
-          >
-            Free Audit
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          <NavAuthButtons/>
         </div>
       </div>
     </header>
