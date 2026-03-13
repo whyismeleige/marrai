@@ -14,8 +14,6 @@ export default async function DashboardLayout({
   const brand = await getBrandByUserId(userId)
   if (!brand) redirect('/onboarding')
 
-  // Serialize: ObjectId → string, Date → ISO string
-  // Next.js cannot pass objects with toJSON methods from Server → Client Components
   const serializedBrand = {
     _id: brand._id?.toString() ?? '',
     userId: brand.userId,
@@ -31,7 +29,12 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-background flex">
       <DashboardSidebar brand={serializedBrand} />
-      <main className="flex-1 min-w-0 overflow-auto">
+      {/*
+        pt-14: clears the fixed mobile top bar (h-14)
+        pb-16: clears the fixed mobile bottom tab bar (h-16)
+        lg:pt-0 lg:pb-0: desktop sidebar handles layout, no offset needed
+      */}
+      <main className="flex-1 min-w-0 overflow-auto pt-14 pb-16 lg:pt-0 lg:pb-0">
         {children}
       </main>
     </div>

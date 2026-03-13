@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, RefreshCw, Trash2, Loader2, X, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Plus, RefreshCw, Trash2, Loader2, X, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Competitor } from '@/lib/mongodb'
 
@@ -25,13 +25,7 @@ function scoreBg(s: number | undefined) {
 
 // ─── Add competitor modal ─────────────────────────────────────────────────────
 
-function AddModal({
-  onClose,
-  onAdded,
-}: {
-  onClose: () => void
-  onAdded: () => void
-}) {
+function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [domain, setDomain] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -55,7 +49,8 @@ function AddModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    // Bottom sheet on mobile, centered on desktop
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-4">
       <div className="surface-card rounded-2xl p-6 w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold text-foreground">Add Competitor</h2>
@@ -67,6 +62,7 @@ function AddModal({
         <input
           autoFocus
           type="text"
+          inputMode="url"
           placeholder="e.g. competitor.com"
           value={domain}
           onChange={e => { setDomain(e.target.value); setError('') }}
@@ -120,26 +116,26 @@ function CompetitorCard({
   const overall = compare(myScores.overall, competitor.score)
 
   return (
-    <div className="surface-card rounded-2xl p-5">
+    <div className="surface-card rounded-2xl p-4 sm:p-5">
       {/* Header */}
-      <div className="flex items-start justify-between mb-5">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-start justify-between mb-4 sm:mb-5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <img
             src={`https://www.google.com/s2/favicons?domain=${competitor.domain}&sz=16`}
             alt=""
             className="w-5 h-5 rounded-sm shrink-0"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
-          <div>
-            <p className="text-sm font-semibold text-foreground">{competitor.domain}</p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{competitor.domain}</p>
             {competitor.lastAuditedAt && (
               <p className="text-xs text-muted-foreground">
-                Last checked {new Date(competitor.lastAuditedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                Checked {new Date(competitor.lastAuditedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
               </p>
             )}
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 shrink-0">
           <button
             onClick={() => onAudit(id)}
             disabled={isAuditing}
@@ -217,12 +213,10 @@ function CompetitorCard({
                     </span>
                   </div>
                   <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                    {/* Their bar */}
                     <div
                       className="absolute inset-y-0 left-0 rounded-full bg-muted-foreground/30"
                       style={{ width: `${theirScore !== undefined ? (theirScore / 30) * 100 : 0}%` }}
                     />
-                    {/* My bar */}
                     <div
                       className={cn('absolute inset-y-0 left-0 rounded-full opacity-80', scoreBg(myScore || undefined))}
                       style={{ width: `${(myScore / 30) * 100}%` }}
@@ -234,7 +228,7 @@ function CompetitorCard({
           </div>
         </>
       ) : (
-        <div className="py-6 text-center">
+        <div className="py-5 text-center">
           <p className="text-sm text-muted-foreground mb-3">
             {isAuditing ? 'Auditing competitor…' : 'Not yet audited'}
           </p>
@@ -274,7 +268,6 @@ export default function CompetitorsPage() {
       const pagesData = await pagesRes.json()
       setCompetitors(compData.competitors ?? [])
 
-      // Compute my avg score from pages
       const pages = pagesData.pages ?? []
       const scored = pages.filter((p: any) => p.score !== undefined)
       if (scored.length) {
@@ -290,7 +283,6 @@ export default function CompetitorsPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  // Poll while any competitor is auditing
   useEffect(() => {
     const hasAuditing = competitors.some(c => c.status === 'auditing')
     if (!hasAuditing) return
@@ -314,22 +306,22 @@ export default function CompetitorsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+      {/* Header — stacks on mobile */}
+      <div className="flex items-start justify-between mb-5 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-foreground">Competitors</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Competitors</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Compare your AEO score against up to 3 competitors.
           </p>
         </div>
         {competitors.length < 3 && (
           <button
             onClick={() => setShowModal(true)}
-            className="btn-primary h-9 px-4 text-sm"
+            className="btn-primary h-9 px-3 sm:px-4 text-sm flex items-center gap-1.5 shrink-0"
           >
             <Plus className="h-4 w-4" />
-            Add competitor
+            <span className="hidden xs:inline">Add competitor</span>
           </button>
         )}
       </div>
@@ -339,12 +331,12 @@ export default function CompetitorsPage() {
           <Loader2 className="h-6 w-6 text-primary animate-spin" />
         </div>
       ) : competitors.length === 0 ? (
-        <div className="surface-card rounded-2xl p-12 text-center">
+        <div className="surface-card rounded-2xl p-10 sm:p-12 text-center">
           <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-4">
-            <Plus className="h-5 w-5 text-muted-foreground" />
+            <BarChart3 className="h-5 w-5 text-muted-foreground" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">No competitors yet</h3>
-          <p className="text-sm text-muted-foreground mb-5">
+          <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
             Add up to 3 competitor domains and benchmark your AEO performance.
           </p>
           <button
@@ -355,7 +347,7 @@ export default function CompetitorsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {competitors.map(comp => (
             <CompetitorCard
               key={(comp._id as any).toString()}

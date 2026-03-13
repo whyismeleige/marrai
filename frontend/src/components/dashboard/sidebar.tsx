@@ -8,9 +8,8 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AnimatedThemeToggler } from '../ui/animated-theme-toggler'
 
-// Serialized version of Brand — safe to pass from Server → Client Components
-// (_id and dates are plain strings, not ObjectId / Date objects)
 export interface SerializedBrand {
   _id: string
   userId: string
@@ -35,16 +34,17 @@ export default function DashboardSidebar({ brand }: { brand: SerializedBrand }) 
 
   return (
     <>
-      {/* ── Desktop sidebar ───────────────────────────────── */}
+      {/* ── Desktop sidebar ───────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-border/60 bg-card sticky top-0 h-screen">
         {/* Logo */}
-        <div className="px-4 h-14 flex items-center border-b border-border/60">
+        <div className="px-4 h-14 flex justify-between items-center border-b border-border/60">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-sm shadow-primary/20">
               <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
             <span className="font-semibold text-[15px] tracking-tight text-foreground">Marrai</span>
           </Link>
+          <AnimatedThemeToggler/>
         </div>
 
         {/* Brand badge */}
@@ -104,42 +104,89 @@ export default function DashboardSidebar({ brand }: { brand: SerializedBrand }) 
         </div>
       </aside>
 
-      {/* ── Mobile top bar ────────────────────────────────── */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-background/80 backdrop-blur border-b border-border/60 flex items-center px-4 justify-between">
+      {/* ── Mobile top bar ─────────────────────────────────────────── */}
+      {/*
+        Slim header: logo left, brand badge right, user avatar far right.
+        Navigation lives in the bottom tab bar below.
+      */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-background/95 backdrop-blur-md border-b border-border/60 flex items-center px-4 justify-between">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-sm shadow-primary/20">
             <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
           <span className="font-semibold text-sm tracking-tight">Marrai</span>
         </Link>
 
-        {/* Mobile icon nav */}
-        <div className="flex items-center gap-1">
-          {NAV.map(item => {
-            const active = item.href === '/dashboard'
-              ? path === '/dashboard'
-              : path.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
-                  active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-              </Link>
-            )
-          })}
-          <div className="ml-1">
-            <UserButton appearance={{ elements: { avatarBox: 'h-7 w-7' } }} />
+        {/* Brand + user */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 bg-muted border border-border rounded-lg px-2.5 py-1.5">
+            <img
+              src={`https://www.google.com/s2/favicons?domain=${brand.domain}&sz=14`}
+              alt=""
+              className="w-3.5 h-3.5 rounded-sm shrink-0"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+            <span className="text-xs font-medium text-foreground truncate max-w-[100px]">
+              {brand.brandName}
+            </span>
           </div>
+          <AnimatedThemeToggler/>
+          <UserButton appearance={{ elements: { avatarBox: 'h-7 w-7' } }} />
         </div>
       </div>
 
-      {/* Mobile spacer so content isn't hidden under the fixed top bar */}
-      <div className="lg:hidden h-14 shrink-0" />
+      {/* ── Mobile bottom tab bar ──────────────────────────────────── */}
+      {/*
+        Modern app-style bottom navigation. Far better UX than top icon bar:
+        - Thumb-reachable
+        - Labels visible
+        - Clear active state
+      */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/95 backdrop-blur-md border-t border-border/60 flex items-center justify-around px-2 safe-area-pb">
+        {NAV.map(item => {
+          const active = item.href === '/dashboard'
+            ? path === '/dashboard'
+            : path.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex flex-col items-center gap-1 flex-1 py-2 rounded-xl transition-colors',
+                active
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <div className={cn(
+                'w-8 h-6 rounded-full flex items-center justify-center transition-all duration-200',
+                active ? 'bg-primary/15' : ''
+              )}>
+                <item.icon className={cn('h-4 w-4', active ? 'h-[18px] w-[18px]' : '')} />
+              </div>
+              <span className={cn(
+                'text-[10px] font-medium leading-none transition-all',
+                active ? 'font-semibold' : ''
+              )}>
+                {item.label}
+              </span>
+            </Link>
+          )
+        })}
+
+        {/* Audit link in bottom nav */}
+        <Link
+          href="/audit"
+          target="_blank"
+          className="flex flex-col items-center gap-1 flex-1 py-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <div className="w-8 h-6 rounded-full flex items-center justify-center">
+            <ExternalLink className="h-4 w-4" />
+          </div>
+          <span className="text-[10px] font-medium leading-none">Audit</span>
+        </Link>
+      </nav>
     </>
   )
 }

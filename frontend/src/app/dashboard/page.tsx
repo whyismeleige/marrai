@@ -45,7 +45,6 @@ function getTopIssues(pages: BrandPage[]) {
 }
 
 function getSparklineData(pages: BrandPage[]): { score: number }[] {
-  // Combine all audit history entries, sort by date, take last 5
   const all = pages
     .flatMap(p => p.auditHistory)
     .sort((a, b) => new Date(a.auditedAt).getTime() - new Date(b.auditedAt).getTime())
@@ -66,15 +65,7 @@ function formatDate(d: Date): string {
 
 // ─── Category bar ─────────────────────────────────────────────────────────────
 
-function CatBar({
-  label,
-  score,
-  max,
-}: {
-  label: string
-  score: number
-  max: number
-}) {
+function CatBar({ label, score, max }: { label: string; score: number; max: number }) {
   const pct = max > 0 ? Math.round((score / max) * 100) : 0
   const color =
     pct >= 70 ? 'bg-green-500' :
@@ -112,30 +103,31 @@ export default async function DashboardPage() {
   const hasData  = pages.some(p => p.score !== undefined)
 
   return (
-    <div className="p-6 lg:p-8 pt-6 lg:pt-8 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-foreground">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
             AEO Dashboard
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             {brand?.brandName} · {brand?.domain}
           </p>
         </div>
         <Link
           href="/dashboard/pages"
-          className="btn-primary h-9 px-4 text-xs hidden sm:flex"
+          className="btn-primary h-9 px-3 sm:px-4 text-xs flex items-center gap-1.5"
         >
           <Zap className="h-3.5 w-3.5" />
-          Add Page
+          <span className="hidden xs:inline">Add Page</span>
+          <span className="xs:hidden">Add</span>
         </Link>
       </div>
 
       {/* ── Top row: Score + Sparkline ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
         {/* Score ring */}
-        <div className="surface-card rounded-2xl p-6 flex flex-col items-center justify-center md:col-span-1">
+        <div className="surface-card rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center sm:col-span-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
             AEO Score
           </p>
@@ -150,14 +142,14 @@ export default async function DashboardPage() {
         </div>
 
         {/* Score trend */}
-        <div className="surface-card rounded-2xl p-6 md:col-span-2">
+        <div className="surface-card rounded-2xl p-5 sm:p-6 sm:col-span-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
             Score Trend
           </p>
           {spark.length >= 2 ? (
             <DashboardSparkline data={spark} />
           ) : (
-            <div className="h-32 flex items-center justify-center">
+            <div className="h-28 sm:h-32 flex items-center justify-center">
               <p className="text-sm text-muted-foreground text-center">
                 Audit at least 2 pages to see your trend.
               </p>
@@ -167,13 +159,13 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Middle row: Category breakdown + Stats ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
         {/* Category breakdown */}
-        <div className="surface-card rounded-2xl p-6">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-5">
+        <div className="surface-card rounded-2xl p-5 sm:p-6">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 sm:mb-5">
             Category Breakdown
           </p>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <CatBar label="Schema Markup"    score={cats.schema}    max={30} />
             <CatBar label="Content Quality"  score={cats.content}   max={30} />
             <CatBar label="Technical SEO"    score={cats.technical} max={20} />
@@ -182,14 +174,14 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="surface-card rounded-2xl p-6 flex flex-col justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-5">
+        <div className="surface-card rounded-2xl p-5 sm:p-6 flex flex-col justify-between">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 sm:mb-5">
             Quick Stats
           </p>
-          <div className="space-y-4 flex-1">
+          <div className="space-y-0 flex-1">
             <div className="flex items-center justify-between py-3 border-b border-border/60">
               <div className="flex items-center gap-2.5">
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground">Pages audited</span>
               </div>
               <span className="text-sm font-bold text-foreground">
@@ -198,7 +190,7 @@ export default async function DashboardPage() {
             </div>
             <div className="flex items-center justify-between py-3 border-b border-border/60">
               <div className="flex items-center gap-2.5">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground">Last audit</span>
               </div>
               <span className="text-sm font-medium text-foreground">
@@ -207,7 +199,7 @@ export default async function DashboardPage() {
             </div>
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-2.5">
-                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground">Critical issues</span>
               </div>
               <span className="text-sm font-bold text-red-500">
@@ -218,7 +210,7 @@ export default async function DashboardPage() {
 
           <Link
             href="/dashboard/pages"
-            className="mt-5 h-9 w-full rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center gap-1.5 transition-colors"
+            className="mt-4 h-9 w-full rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center gap-1.5 transition-colors"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Re-audit all pages
@@ -227,13 +219,13 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Bottom: Top 3 issues ── */}
-      <div className="surface-card rounded-2xl p-6">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-5">
+      <div className="surface-card rounded-2xl p-5 sm:p-6">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4 sm:mb-5">
           Top Critical Issues
         </p>
 
         {issues.length === 0 ? (
-          <div className="py-8 text-center">
+          <div className="py-6 sm:py-8 text-center">
             <p className="text-sm text-muted-foreground">
               {hasData
                 ? '🎉 No critical issues found across your pages!'
@@ -254,22 +246,32 @@ export default async function DashboardPage() {
             {issues.map((issue, i) => (
               <div
                 key={i}
-                className="flex items-start justify-between gap-4 p-4 rounded-xl bg-muted/40 border border-border/60"
+                className="flex items-start gap-3 p-3.5 sm:p-4 rounded-xl bg-muted/40 border border-border/60"
               >
-                <div className="flex items-start gap-3">
+                <div className="shrink-0 mt-0.5">
                   {issue.priority === 'critical' ? (
-                    <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  ) : issue.priority === 'warning' ? (
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
                   ) : (
-                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <Lightbulb className="h-4 w-4 text-blue-500" />
                   )}
-                  <p className="text-sm text-foreground leading-relaxed">{issue.text}</p>
                 </div>
-                <Link
-                  href="/dashboard/pages"
-                  className="shrink-0 h-7 px-3 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors flex items-center gap-1"
-                >
-                  Fix it <ArrowRight className="h-3 w-3" />
-                </Link>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground leading-snug">{issue.text}</p>
+                  {issue.priority && (
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                      {issue.priority}
+                    </p>
+                  )}
+                </div>
+                <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                  issue.priority === 'critical'
+                    ? 'bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400'
+                    : 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400'
+                }`}>
+                  {issue.priority}
+                </span>
               </div>
             ))}
           </div>
