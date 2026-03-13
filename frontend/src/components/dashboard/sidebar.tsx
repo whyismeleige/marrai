@@ -5,24 +5,37 @@ import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import {
   Cpu, LayoutDashboard, FileText, BarChart3, Code2,
-  ExternalLink, ChevronRight,
+  ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Brand } from '@/lib/mongodb'
+
+// Serialized version of Brand — safe to pass from Server → Client Components
+// (_id and dates are plain strings, not ObjectId / Date objects)
+export interface SerializedBrand {
+  _id: string
+  userId: string
+  brandName: string
+  domain: string
+  industry: string
+  keywords: string[]
+  competitorDomains: string[]
+  createdAt: string
+  updatedAt: string
+}
 
 const NAV = [
-  { href: '/dashboard',             icon: LayoutDashboard, label: 'Overview'   },
-  { href: '/dashboard/pages',       icon: FileText,        label: 'Pages'      },
+  { href: '/dashboard',             icon: LayoutDashboard, label: 'Overview'    },
+  { href: '/dashboard/pages',       icon: FileText,        label: 'Pages'       },
   { href: '/dashboard/competitors', icon: BarChart3,       label: 'Competitors' },
-  { href: '/dashboard/schema',      icon: Code2,           label: 'Schema'     },
+  { href: '/dashboard/schema',      icon: Code2,           label: 'Schema'      },
 ]
 
-export default function DashboardSidebar({ brand }: { brand: Brand }) {
+export default function DashboardSidebar({ brand }: { brand: SerializedBrand }) {
   const path = usePathname()
 
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* ── Desktop sidebar ───────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-border/60 bg-card sticky top-0 h-screen">
         {/* Logo */}
         <div className="px-4 h-14 flex items-center border-b border-border/60">
@@ -85,15 +98,13 @@ export default function DashboardSidebar({ brand }: { brand: Brand }) {
             Free Audit Tool
           </Link>
           <div className="flex items-center gap-2.5 px-3 h-9">
-            <UserButton
-              appearance={{ elements: { avatarBox: 'h-6 w-6' } }}
-            />
+            <UserButton appearance={{ elements: { avatarBox: 'h-6 w-6' } }} />
             <span className="text-sm text-muted-foreground">Account</span>
           </div>
         </div>
       </aside>
 
-      {/* Mobile top bar */}
+      {/* ── Mobile top bar ────────────────────────────────── */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-background/80 backdrop-blur border-b border-border/60 flex items-center px-4 justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
@@ -101,7 +112,8 @@ export default function DashboardSidebar({ brand }: { brand: Brand }) {
           </div>
           <span className="font-semibold text-sm tracking-tight">Marrai</span>
         </Link>
-        {/* Mobile: simple icon nav */}
+
+        {/* Mobile icon nav */}
         <div className="flex items-center gap-1">
           {NAV.map(item => {
             const active = item.href === '/dashboard'
@@ -125,7 +137,8 @@ export default function DashboardSidebar({ brand }: { brand: Brand }) {
           </div>
         </div>
       </div>
-      {/* Mobile spacer */}
+
+      {/* Mobile spacer so content isn't hidden under the fixed top bar */}
       <div className="lg:hidden h-14 shrink-0" />
     </>
   )

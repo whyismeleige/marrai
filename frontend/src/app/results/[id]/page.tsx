@@ -156,7 +156,9 @@ function Header() {
 /* ─── Page ───────────────────────────────────────────────── */
 
 export default async function ResultsPage({ params }: { params: { id: string } }) {
-  const audit = await getAudit(params.id)
+  const { id } = await params; 
+
+  const audit = await getAudit(id)
   if (!audit) notFound()
 
   // ── Pending / processing ──────────────────────────────────
@@ -277,7 +279,6 @@ export default async function ResultsPage({ params }: { params: { id: string } }
                 <img
                   src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
                   alt="" className="w-4 h-4 rounded-sm"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
                 <span className="text-sm text-muted-foreground truncate">{audit.url}</span>
                 <a href={audit.url} target="_blank" rel="noopener noreferrer" className="shrink-0">

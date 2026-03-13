@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowRight, ArrowLeft, Cpu, CheckCircle, Loader2,
   Globe, Mail, User, Zap, ShieldCheck, BarChart3,
-  AlertCircle, Search, Brain, Sparkles,
+  AlertCircle, Search, Brain, Sparkles, PartyPopper,
 } from 'lucide-react'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 
@@ -186,11 +186,7 @@ function FormInput({
 
 /* ─── URL Step ───────────────────────────────────────────── */
 
-function UrlStep({
-  onNext,
-}: {
-  onNext: (url: string) => void
-}) {
+function UrlStep({ onNext }: { onNext: (url: string) => void }) {
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -282,6 +278,7 @@ function ContactStep({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
+  const [loading, setLoading] = useState(false)
   const domain = getDomain(url)
 
   const validate = () => {
@@ -296,6 +293,7 @@ function ContactStep({
     const e = validate()
     if (Object.keys(e).length) return setErrors(e)
     setErrors({})
+    setLoading(true)
     onNext(name.trim(), email.trim())
   }
 
@@ -304,7 +302,8 @@ function ContactStep({
       <div className="flex items-center gap-2 mb-8 fade-up">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          disabled={loading}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back
@@ -356,11 +355,21 @@ function ContactStep({
 
         <button
           onClick={submit}
-          className="btn-primary w-full h-12 text-sm mt-2"
+          disabled={loading}
+          className="btn-primary w-full h-12 text-sm mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          <Sparkles className="h-4 w-4" />
-          Run My Free Audit
-          <ArrowRight className="h-4 w-4" />
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Starting audit…
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Run My Free Audit
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </button>
 
         <p className="text-center text-[11px] text-muted-foreground mt-4">
@@ -373,27 +382,90 @@ function ContactStep({
 
 /* ─── Analyzing Step ─────────────────────────────────────── */
 
-function AnalyzingStep({ url }: { url: string }) {
+function AnalyzingStep({ url, auditId }: { url: string; auditId: string | null }) {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [doneSteps, setDoneSteps] = useState<number[]>([])
+  const [animationsDone, setAnimationsDone] = useState(false)
+  const [auditStatus, setAuditStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | null>(null)
+  const [finalizing, setFinalizing] = useState(false)
   const domain = getDomain(url)
 
+  // ── Run visual animation steps ──────────────────────────
   useEffect(() => {
+    let cancelled = false
     let idx = 0
+
     const advance = () => {
-      if (idx >= ANALYSIS_STEPS.length) return
+      if (cancelled || idx >= ANALYSIS_STEPS.length) return
       const current = idx
       setCurrentStep(current)
+
       setTimeout(() => {
+        if (cancelled) return
         setDoneSteps(prev => [...prev, current])
         idx++
         if (idx < ANALYSIS_STEPS.length) {
-          setTimeout(advance, 100)
+          setTimeout(advance, 120)
+        } else {
+          setAnimationsDone(true)
         }
       }, ANALYSIS_STEPS[current].duration)
     }
+
     advance()
+    return () => { cancelled = true }
   }, [])
+
+  // ── Poll audit status once we have an ID ───────────────
+  useEffect(() => {
+    if (!auditId) return
+
+    let cancelled = false
+
+    const poll = async () => {
+      if (cancelled) return
+      try {
+        const res = await fetch(`/api/audit/${auditId}`)
+        if (!res.ok) throw new Error('fetch failed')
+        const data = await res.json()
+        if (cancelled) return
+        setAuditStatus(data.status)
+        if (data.status !== 'completed' && data.status !== 'failed') {
+          setTimeout(poll, 2500)
+        }
+      } catch {
+        if (!cancelled) setTimeout(poll, 3000)
+      }
+    }
+
+    // First poll after 3s — gives the server time to start processing
+    const t = setTimeout(poll, 3000)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [auditId])
+
+  // ── Navigate when BOTH animations and audit are done ──
+  useEffect(() => {
+    if (!auditId) return
+
+    if (auditStatus === 'failed') {
+      router.push('/')
+      return
+    }
+
+    if (auditStatus === 'completed' && animationsDone) {
+      router.push(`/results/${auditId}`)
+      return
+    }
+
+    // Animations finished but audit still running → show finalizing state
+    if (animationsDone && auditStatus !== 'completed') {
+      setFinalizing(true)
+    }
+  }, [auditId, auditStatus, animationsDone, router])
 
   return (
     <AuditShell step="analyzing">
@@ -460,6 +532,30 @@ function AnalyzingStep({ url }: { url: string }) {
             </div>
           )
         })}
+
+        {/* Finalizing step — shown when animations are done but audit still running */}
+        {finalizing && auditStatus !== 'completed' && (
+          <div className="flex items-center gap-3 p-3.5 rounded-xl border border-primary/30 bg-primary/5 transition-all duration-300">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-primary/15">
+              <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              Finalising your report…
+            </span>
+          </div>
+        )}
+
+        {/* All done — brief flash before navigation */}
+        {auditStatus === 'completed' && animationsDone && (
+          <div className="flex items-center gap-3 p-3.5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 transition-all duration-300">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-emerald-500/15">
+              <PartyPopper className="h-3.5 w-3.5 text-emerald-500" />
+            </div>
+            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              Report ready! Redirecting…
+            </span>
+          </div>
+        )}
       </div>
     </AuditShell>
   )
@@ -468,9 +564,9 @@ function AnalyzingStep({ url }: { url: string }) {
 /* ─── Page ───────────────────────────────────────────────── */
 
 export default function AuditPage() {
-  const router = useRouter()
   const [step, setStep] = useState<Step>('url')
   const [url, setUrl] = useState('')
+  const [auditId, setAuditId] = useState<string | null>(null)
 
   const handleUrl = (u: string) => {
     setUrl(u)
@@ -478,6 +574,7 @@ export default function AuditPage() {
   }
 
   const handleContact = async (name: string, email: string) => {
+    // Transition to analyzing screen immediately — good UX
     setStep('analyzing')
 
     try {
@@ -490,25 +587,17 @@ export default function AuditPage() {
       if (!res.ok) throw new Error('Request failed')
       const { id } = await res.json()
 
-      // Poll until done
-      const poll = async () => {
-        const r = await fetch(`/api/audit/${id}`)
-        const data = await r.json()
-        if (data.status === 'completed' || data.status === 'failed') {
-          router.push(`/results/${id}`)
-        } else {
-          setTimeout(poll, 2000)
-        }
-      }
-      setTimeout(poll, 4000)
+      // Give the ID to AnalyzingStep — it handles polling + navigation
+      setAuditId(id)
     } catch {
-      router.push('/')
+      // On failure go back home — AnalyzingStep will stay stuck otherwise
+      setStep('url')
     }
   }
 
   if (step === 'url')       return <UrlStep onNext={handleUrl} />
   if (step === 'contact')   return <ContactStep url={url} onNext={handleContact} onBack={() => setStep('url')} />
-  if (step === 'analyzing') return <AnalyzingStep url={url} />
+  if (step === 'analyzing') return <AnalyzingStep url={url} auditId={auditId} />
 
   return null
 }
