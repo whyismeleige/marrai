@@ -8,7 +8,7 @@ import {
   Globe, Mail, User, Zap, ShieldCheck, BarChart3,
   AlertCircle, Search, Brain, Sparkles,
 } from 'lucide-react'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 
 /* ─── Types & constants ──────────────────────────────────── */
 
@@ -21,12 +21,6 @@ const ANALYSIS_STEPS = [
   { icon: BarChart3,   label: 'Scoring content quality…',      duration: 1600 },
   { icon: ShieldCheck, label: 'Analysing technical signals…',  duration: 1200 },
   { icon: Zap,         label: 'Generating recommendations…',   duration: 1000 },
-]
-
-const TRUST_PILLS = [
-  { icon: Zap,         text: '100% free' },
-  { icon: ShieldCheck, text: 'No credit card' },
-  { icon: BarChart3,   text: '20+ AEO checks' },
 ]
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -56,19 +50,19 @@ function getDomain(raw: string): string {
 
 function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/35 transition-shadow">
             <Cpu className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-[15px] tracking-tight text-foreground">Marrai</span>
+          <span className="font-bold text-[15px] tracking-tight text-foreground">Marrai</span>
         </Link>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <AnimatedThemeToggler />
           <Link
             href="/"
-            className="h-8 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex items-center gap-1.5 transition-colors"
+            className="h-8 px-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back
@@ -101,12 +95,11 @@ function AuditShell({ children, step }: { children: React.ReactNode; step: Step 
       <StepProgress step={step} />
       <Header />
 
-      {/* Subtle grid bg */}
+      {/* Background */}
       <div className="fixed inset-0 hero-grid opacity-30 pointer-events-none" />
-
-      {/* Glow */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] rounded-full opacity-10 blur-[80px] pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse, oklch(0.70 0.20 264) 0%, transparent 70%)' }}
+      <div
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-10 blur-[80px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, oklch(0.70 0.20 264 / 0.5) 0%, transparent 70%)' }}
       />
 
       <main className="relative flex-1 flex items-center justify-center px-5 py-16">
@@ -123,7 +116,7 @@ function AuditShell({ children, step }: { children: React.ReactNode; step: Step 
 function StepLabel({ current, total, label }: { current: number; total: number; label: string }) {
   return (
     <div className="flex items-center gap-3 mb-8 fade-up">
-      <span className="text-xs font-semibold text-muted-foreground tracking-widest uppercase">
+      <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">
         Step {current} of {total}
       </span>
       <span className="h-px flex-1 bg-border/60" />
@@ -150,11 +143,11 @@ function FormInput({
 }) {
   return (
     <div className="mb-4">
-      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
         {label}
       </label>
       <div className="relative">
-        <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
         <input
           ref={inputRef as React.RefObject<HTMLInputElement> | undefined}
           type={type}
@@ -163,27 +156,27 @@ function FormInput({
           autoFocus={autoFocus}
           onChange={e => onChange(e.target.value)}
           className={`
-            w-full h-12 pl-10 pr-10 rounded-xl bg-muted/50
-            border text-sm text-foreground placeholder:text-muted-foreground/60
-            outline-none transition-all duration-150
+            w-full h-12 pl-10 pr-10 rounded-xl
+            border text-sm text-foreground placeholder:text-muted-foreground/50
+            outline-none transition-all duration-200
+            bg-background/60
             ${success
-              ? 'border-green-500/50 ring-1 ring-green-500/20'
+              ? 'border-emerald-500/60 ring-2 ring-emerald-500/15 bg-emerald-500/5'
               : error
-              ? 'border-destructive/50 ring-1 ring-destructive/20'
-              : 'border-border focus:border-primary/50 focus:ring-1 focus:ring-primary/20'
+              ? 'border-red-500/60 ring-2 ring-red-500/15 bg-red-500/5'
+              : 'border-border hover:border-border/80 focus:border-primary/60 focus:ring-2 focus:ring-primary/15 focus:bg-primary/5'
             }
           `}
         />
         {success && (
-          <CheckCircle className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+          <CheckCircle className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
         )}
-        {error && !success && (
-          <AlertCircle className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+        {error && (
+          <AlertCircle className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
         )}
       </div>
       {error && (
-        <p className="mt-1.5 text-xs text-destructive flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
+        <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
           {error}
         </p>
       )}
@@ -191,77 +184,82 @@ function FormInput({
   )
 }
 
-/* ─── Step 1: URL ────────────────────────────────────────── */
+/* ─── URL Step ───────────────────────────────────────────── */
 
-function UrlStep({ onNext }: { onNext: (url: string) => void }) {
-  const [value, setValue] = useState('')
-  const [touched, setTouched] = useState(false)
+function UrlStep({
+  onNext,
+}: {
+  onNext: (url: string) => void
+}) {
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const domain = url ? getDomain(url) : ''
+  const valid = isValidUrl(url)
 
-  const valid = isValidUrl(value)
-  const domain = valid ? getDomain(value) : null
-  const showError = touched && value.length > 0 && !valid
+  const submit = () => {
+    if (!url.trim()) return setError('Please enter a URL.')
+    if (!valid) return setError("That doesn't look like a valid URL.")
+    setError('')
+    onNext(normaliseUrl(url))
+  }
 
   return (
     <AuditShell step="url">
-      <StepLabel current={1} total={2} label="Enter URL" />
+      <StepLabel current={1} total={2} label="Your website" />
+
+      <div className="mb-8 fade-up delay-50">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mb-2">
+          Which page do you want to audit?
+        </h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Paste any URL — homepage, product page, or blog post. We'll analyse it for AI search visibility.
+        </p>
+      </div>
 
       <div className="fade-up delay-100">
-        <h1 className="text-2xl font-black tracking-tight text-foreground mb-2">
-          Which page should we audit?
-        </h1>
-        <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-          Paste any public URL — homepage, product page, or blog post.
-        </p>
-
         <FormInput
-          label="Website URL"
+          label="Page URL"
           icon={Globe}
-          placeholder="https://yourwebsite.com"
-          value={value}
-          onChange={v => { setValue(v); setTouched(false) }}
-          success={valid}
-          error={showError ? 'Please enter a valid URL (e.g. https://yoursite.com)' : undefined}
+          placeholder="yourwebsite.com"
+          value={url}
+          onChange={v => { setUrl(v); setError('') }}
+          error={error}
+          success={valid && url.length > 0}
           autoFocus
+          inputRef={inputRef as any}
         />
 
-        {/* Domain preview */}
-        {valid && domain && (
-          <div className="flex items-center gap-2 mb-6 px-1 fade-up">
+        {domain && valid && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground fade-in">
             <img
               src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
               alt=""
               className="w-4 h-4 rounded-sm"
               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
-            <span className="text-sm text-muted-foreground">
-              Auditing <span className="font-medium text-foreground">{domain}</span>
-            </span>
+            <span>Auditing <strong className="text-foreground">{domain}</strong></span>
           </div>
         )}
 
         <button
-          onClick={() => { setTouched(true); if (valid) onNext(normaliseUrl(value)) }}
-          disabled={!valid}
-          className="
-            w-full h-12 rounded-xl font-semibold text-sm
-            bg-primary text-primary-foreground
-            hover:opacity-90 active:scale-[0.99]
-            disabled:opacity-40 disabled:cursor-not-allowed
-            transition-all duration-150
-            flex items-center justify-center gap-2
-            shadow-lg shadow-primary/20
-          "
+          onClick={submit}
+          className="btn-primary w-full h-12 text-sm mt-2"
         >
-          Analyse this page
+          Continue
           <ArrowRight className="h-4 w-4" />
         </button>
 
         {/* Trust pills */}
-        <div className="flex items-center justify-center gap-5 mt-6 flex-wrap">
-          {TRUST_PILLS.map(p => (
-            <div key={p.text} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <p.icon className="h-3.5 w-3.5 text-primary" />
-              {p.text}
+        <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 mt-6">
+          {[
+            { icon: Zap, text: '100% free' },
+            { icon: ShieldCheck, text: 'No credit card' },
+            { icon: BarChart3, text: '20+ checks' },
+          ].map(t => (
+            <div key={t.text} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <t.icon className="h-3.5 w-3.5 text-primary" />
+              {t.text}
             </div>
           ))}
         </div>
@@ -270,274 +268,247 @@ function UrlStep({ onNext }: { onNext: (url: string) => void }) {
   )
 }
 
-/* ─── Step 2: Contact ────────────────────────────────────── */
+/* ─── Contact Step ───────────────────────────────────────── */
 
 function ContactStep({
   url,
+  onNext,
   onBack,
-  onSubmit,
-  loading,
-  error,
 }: {
   url: string
+  onNext: (name: string, email: string) => void
   onBack: () => void
-  onSubmit: (email: string, name: string) => void
-  loading: boolean
-  error: string
 }) {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [name, setName]   = useState('')
-  const emailRef = useRef<HTMLInputElement>(null)
-
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const canSubmit  = emailValid && name.trim().length >= 2
-
-  useEffect(() => {
-    emailRef.current?.focus()
-  }, [])
-
+  const [errors, setErrors] = useState<{ name?: string; email?: string }>({})
   const domain = getDomain(url)
+
+  const validate = () => {
+    const e: typeof errors = {}
+    if (!name.trim()) e.name = 'Please enter your name.'
+    if (!email.trim()) e.email = 'Please enter your email.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email address.'
+    return e
+  }
+
+  const submit = () => {
+    const e = validate()
+    if (Object.keys(e).length) return setErrors(e)
+    setErrors({})
+    onNext(name.trim(), email.trim())
+  }
 
   return (
     <AuditShell step="contact">
-      <StepLabel current={2} total={2} label="Your details" />
+      <div className="flex items-center gap-2 mb-8 fade-up">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </button>
+        <span className="h-px flex-1 bg-border/60" />
+        <span className="text-xs text-muted-foreground">Step 2 of 2</span>
+      </div>
 
-      <div className="fade-up delay-100">
-        {/* Domain pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
+      {/* Domain badge */}
+      <div className="flex items-center gap-2 mb-6 fade-up delay-50">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/60 border border-border/60 text-xs text-muted-foreground">
           <img
             src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
-            alt=""
-            className="w-4 h-4 rounded-sm"
+            alt="" className="w-3.5 h-3.5 rounded-sm"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
-          <span className="text-xs font-medium text-primary">{domain}</span>
+          {domain}
         </div>
+      </div>
 
-        <h1 className="text-2xl font-black tracking-tight text-foreground mb-2">
+      <div className="mb-8 fade-up delay-100">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mb-2">
           Where should we send your report?
         </h1>
-        <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-          We'll email your full AEO audit. We don't share your data or spam you.
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Your full AEO audit will be ready instantly. We'll also send a copy to your email.
         </p>
+      </div>
 
+      <div className="fade-up delay-150">
         <FormInput
-          label="Your name"
+          label="Your Name"
           icon={User}
-          placeholder="Alex Sharma"
+          placeholder="Alex Johnson"
           value={name}
-          onChange={setName}
-          success={name.trim().length >= 2}
+          onChange={v => { setName(v); setErrors(p => ({ ...p, name: undefined })) }}
+          error={errors.name}
+          autoFocus
         />
-
         <FormInput
-          label="Email address"
+          label="Email Address"
           icon={Mail}
           type="email"
           placeholder="alex@company.com"
           value={email}
-          onChange={setEmail}
-          success={emailValid}
-          inputRef={emailRef as React.RefObject<HTMLInputElement>}
+          onChange={v => { setEmail(v); setErrors(p => ({ ...p, email: undefined })) }}
+          error={errors.email}
         />
 
-        {error && (
-          <div className="flex items-center gap-2 mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
-
         <button
-          onClick={() => { if (canSubmit) onSubmit(email, name) }}
-          disabled={!canSubmit || loading}
-          className="
-            w-full h-12 rounded-xl font-semibold text-sm
-            bg-primary text-primary-foreground
-            hover:opacity-90 active:scale-[0.99]
-            disabled:opacity-40 disabled:cursor-not-allowed
-            transition-all duration-150
-            flex items-center justify-center gap-2
-            shadow-lg shadow-primary/20
-            mb-3
-          "
+          onClick={submit}
+          className="btn-primary w-full h-12 text-sm mt-2"
         >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Starting analysis…
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Get my free report
-            </>
-          )}
+          <Sparkles className="h-4 w-4" />
+          Run My Free Audit
+          <ArrowRight className="h-4 w-4" />
         </button>
 
-        <button
-          onClick={onBack}
-          className="w-full h-9 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors flex items-center justify-center gap-1.5"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Change URL
-        </button>
+        <p className="text-center text-[11px] text-muted-foreground mt-4">
+          No spam. Unsubscribe anytime. We only send audit reports.
+        </p>
       </div>
     </AuditShell>
   )
 }
 
-/* ─── Step 3: Analyzing ──────────────────────────────────── */
+/* ─── Analyzing Step ─────────────────────────────────────── */
 
 function AnalyzingStep({ url }: { url: string }) {
-  const [activeIdx, setActiveIdx] = useState(0)
-  const [done, setDone]           = useState<number[]>([])
+  const [currentStep, setCurrentStep] = useState(0)
+  const [doneSteps, setDoneSteps] = useState<number[]>([])
+  const domain = getDomain(url)
 
   useEffect(() => {
     let idx = 0
-    function next() {
+    const advance = () => {
       if (idx >= ANALYSIS_STEPS.length) return
-      const step = ANALYSIS_STEPS[idx]
-      setActiveIdx(idx)
+      const current = idx
+      setCurrentStep(current)
       setTimeout(() => {
-        setDone(prev => [...prev, idx])
+        setDoneSteps(prev => [...prev, current])
         idx++
-        next()
-      }, step.duration)
+        if (idx < ANALYSIS_STEPS.length) {
+          setTimeout(advance, 100)
+        }
+      }, ANALYSIS_STEPS[current].duration)
     }
-    next()
+    advance()
   }, [])
-
-  const domain = getDomain(url)
-  const progress = Math.round(((done.length) / ANALYSIS_STEPS.length) * 100)
 
   return (
     <AuditShell step="analyzing">
-      <div className="fade-up">
-        {/* Domain pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border mb-8">
-          <img
-            src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
-            alt=""
-            className="w-4 h-4 rounded-sm"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-          <span className="text-xs font-medium text-muted-foreground">{domain}</span>
+      <div className="text-center mb-10 fade-up">
+        {/* Spinner */}
+        <div className="relative w-20 h-20 mx-auto mb-6">
+          <svg className="w-20 h-20 -rotate-90 spin-slow" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="32" fill="none" strokeWidth="4" className="stroke-muted" />
+            <circle
+              cx="40" cy="40" r="32" fill="none" strokeWidth="4"
+              className="stroke-primary"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 32 * 0.3} ${2 * Math.PI * 32 * 0.7}`}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Brain className="h-7 w-7 text-primary" />
+          </div>
         </div>
 
         <h1 className="text-2xl font-black tracking-tight text-foreground mb-2">
-          Analysing your page…
+          Analysing {domain}
         </h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          Running 20+ AEO checks. This takes about 30 seconds.
+        <p className="text-sm text-muted-foreground">
+          Running 20+ AEO checks. This takes about 30–60 seconds.
         </p>
+      </div>
 
-        {/* Progress bar */}
-        <div className="mb-8">
-          <div className="flex justify-between text-xs text-muted-foreground mb-2">
-            <span>Progress</span>
-            <span>{progress}%</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+      {/* Steps list */}
+      <div className="space-y-3 fade-up delay-100">
+        {ANALYSIS_STEPS.map((s, i) => {
+          const done = doneSteps.includes(i)
+          const active = i === currentStep && !done
+          return (
             <div
-              className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Steps */}
-        <div className="space-y-2">
-          {ANALYSIS_STEPS.map((s, i) => {
-            const isDone   = done.includes(i)
-            const isActive = activeIdx === i && !isDone
-
-            return (
-              <div
-                key={i}
-                className={`
-                  flex items-center gap-3 p-3 rounded-lg transition-all duration-300
-                  ${isDone   ? 'opacity-50' : ''}
-                  ${isActive ? 'bg-primary/8 border border-primary/15' : ''}
-                `}
-              >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all duration-300
-                  ${isDone ? 'bg-primary/20' : isActive ? 'bg-primary/20' : 'bg-muted'}
-                `}>
-                  {isDone ? (
-                    <CheckCircle className="h-3.5 w-3.5 text-primary" />
-                  ) : isActive ? (
-                    <Loader2 className="h-3 w-3 text-primary animate-spin" />
-                  ) : (
-                    <s.icon className="h-3 w-3 text-muted-foreground" />
-                  )}
-                </div>
-                <span className={`text-sm transition-colors duration-300 ${
-                  isDone   ? 'text-muted-foreground line-through' :
-                  isActive ? 'text-foreground font-medium' : 'text-muted-foreground'
-                }`}>
-                  {s.label}
-                </span>
+              key={i}
+              className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-300 ${
+                done
+                  ? 'border-emerald-500/25 bg-emerald-500/5'
+                  : active
+                  ? 'border-primary/30 bg-primary/5'
+                  : 'border-border/40 bg-muted/20 opacity-40'
+              }`}
+            >
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                done ? 'bg-emerald-500/15' : active ? 'bg-primary/15' : 'bg-muted/60'
+              }`}>
+                {done ? (
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                ) : active ? (
+                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                ) : (
+                  <s.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
               </div>
-            )
-          })}
-        </div>
+              <span className={`text-sm font-medium ${
+                done ? 'text-emerald-600 dark:text-emerald-400' : active ? 'text-foreground' : 'text-muted-foreground'
+              }`}>
+                {s.label}
+              </span>
+              {done && (
+                <span className="ml-auto text-xs font-semibold text-emerald-600 dark:text-emerald-400">Done</span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </AuditShell>
   )
 }
 
-/* ─── Main page ──────────────────────────────────────────── */
+/* ─── Page ───────────────────────────────────────────────── */
 
 export default function AuditPage() {
-  const router  = useRouter()
-  const [step, setStep]       = useState<Step>('url')
-  const [url, setUrl]         = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const router = useRouter()
+  const [step, setStep] = useState<Step>('url')
+  const [url, setUrl] = useState('')
 
-  function handleUrl(u: string) {
+  const handleUrl = (u: string) => {
     setUrl(u)
     setStep('contact')
   }
 
-  async function handleContact(email: string, name: string) {
-    setLoading(true)
-    setError('')
+  const handleContact = async (name: string, email: string) => {
+    setStep('analyzing')
+
     try {
-      const res = await fetch('/api/analyze', {
+      const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, email, name }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Something went wrong')
-      setStep('analyzing')
-      // Wait for analysis animation then redirect
-      setTimeout(() => {
-        router.push(`/results/${data.id}`)
-      }, ANALYSIS_STEPS.reduce((acc, s) => acc + s.duration, 0) + 500)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
-      setLoading(false)
+
+      if (!res.ok) throw new Error('Request failed')
+      const { id } = await res.json()
+
+      // Poll until done
+      const poll = async () => {
+        const r = await fetch(`/api/audit/${id}`)
+        const data = await r.json()
+        if (data.status === 'completed' || data.status === 'failed') {
+          router.push(`/results/${id}`)
+        } else {
+          setTimeout(poll, 2000)
+        }
+      }
+      setTimeout(poll, 4000)
+    } catch {
+      router.push('/')
     }
   }
 
-  if (step === 'url') {
-    return <UrlStep onNext={handleUrl} />
-  }
+  if (step === 'url')       return <UrlStep onNext={handleUrl} />
+  if (step === 'contact')   return <ContactStep url={url} onNext={handleContact} onBack={() => setStep('url')} />
+  if (step === 'analyzing') return <AnalyzingStep url={url} />
 
-  if (step === 'contact') {
-    return (
-      <ContactStep
-        url={url}
-        onBack={() => setStep('url')}
-        onSubmit={handleContact}
-        loading={loading}
-        error={error}
-      />
-    )
-  }
-
-  return <AnalyzingStep url={url} />
+  return null
 }
