@@ -1,8 +1,11 @@
 'use client'
 
 // src/app/dashboard/competitors/page.tsx
-import { useState, useEffect, useCallback } from 'react'
-import { Plus, Loader2, RefreshCw, Trash2, BarChart3, TrendingUp, TrendingDown, Minus, Target } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import {
+  Plus, Loader2, RefreshCw, Trash2, BarChart3,
+  TrendingUp, TrendingDown, Minus, Target, XCircle,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import type { Competitor, CategoryScores } from '@/lib/mongodb'
@@ -65,9 +68,7 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
           Enter a competitor's domain to benchmark your AEO score against theirs.
         </p>
 
-        <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-          Domain
-        </label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Domain</label>
         <input
           autoFocus
           type="text"
@@ -118,6 +119,8 @@ function CompetitorCard({
 }) {
   const id = (competitor._id as any).toString()
   const isAuditing = competitor.status === 'auditing'
+  const isFailed   = competitor.status === 'failed'
+  const errMsg     = (competitor as any).errorMessage as string | undefined
 
   function compare(myVal: number | null, theirVal: number | undefined) {
     if (myVal === null || theirVal === undefined) return null
@@ -136,7 +139,10 @@ function CompetitorCard({
   ]
 
   return (
-    <div className="surface-card rounded-2xl p-4 sm:p-5">
+    <div className={cn(
+      'surface-card rounded-2xl p-4 sm:p-5',
+      isFailed && 'border border-red-500/20'
+    )}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -148,10 +154,13 @@ function CompetitorCard({
           />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{competitor.domain}</p>
-            {competitor.lastAuditedAt && (
+            {competitor.lastAuditedAt && !isFailed && (
               <p className="text-xs text-muted-foreground">
                 Checked {new Date(competitor.lastAuditedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
               </p>
+            )}
+            {isFailed && (
+              <p className="text-xs text-red-500 font-medium">Audit failed</p>
             )}
           </div>
         </div>
@@ -161,7 +170,7 @@ function CompetitorCard({
             onClick={() => onAudit(id)}
             disabled={isAuditing}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-40"
-            title="Re-audit competitor"
+            title={isFailed ? 'Retry audit' : 'Re-audit competitor'}
           >
             {isAuditing
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -177,7 +186,7 @@ function CompetitorCard({
         </div>
       </div>
 
-      {/* Scores comparison */}
+      {/* Body */}
       {competitor.score !== undefined && competitor.status === 'done' ? (
         <>
           {/* Overall score comparison */}
@@ -190,14 +199,13 @@ function CompetitorCard({
             </div>
 
             <div className="flex items-center gap-1.5 px-2">
-              {overall === 'ahead' && <TrendingUp className="h-4 w-4 text-emerald-500" />}
-              {overall === 'behind' && <TrendingDown className="h-4 w-4 text-red-500" />}
-              {overall === 'tied' && <Minus className="h-4 w-4 text-muted-foreground" />}
-              {overall === null && <Minus className="h-4 w-4 text-muted-foreground" />}
+              {overall === 'ahead'  && <TrendingUp   className="h-4 w-4 text-emerald-500" />}
+              {overall === 'behind' && <TrendingDown  className="h-4 w-4 text-red-500" />}
+              {(overall === 'tied' || overall === null) && <Minus className="h-4 w-4 text-muted-foreground" />}
               <span className={cn(
                 'text-xs font-semibold',
-                overall === 'ahead' ? 'text-emerald-500' :
-                overall === 'behind' ? 'text-red-500' : 'text-muted-foreground'
+                overall === 'ahead'  ? 'text-emerald-500' :
+                overall === 'behind' ? 'text-red-500'     : 'text-muted-foreground'
               )}>
                 {overall === 'ahead' ? 'Ahead' : overall === 'behind' ? 'Behind' : '—'}
               </span>
@@ -224,12 +232,10 @@ function CompetitorCard({
                   </div>
                 </div>
                 <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                  {/* Theirs */}
                   <div
                     className="absolute inset-y-0 left-0 rounded-full bg-muted-foreground/25"
                     style={{ width: `${theirs !== undefined ? (theirs / max) * 100 : 0}%` }}
                   />
-                  {/* Mine */}
                   <div
                     className={cn('absolute inset-y-0 left-0 rounded-full opacity-80', scoreBgFull(mine || undefined))}
                     style={{ width: `${(mine / max) * 100}%` }}
@@ -239,7 +245,25 @@ function CompetitorCard({
             ))}
           </div>
         </>
+      ) : isFailed ? (
+        /* ── Failed state ── */
+        <div className="py-4 text-center">
+          <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-2.5">
+            <XCircle className="h-4.5 w-4.5 text-red-500" />
+          </div>
+          <p className="text-xs font-semibold text-red-500 mb-1">Couldn't reach this site</p>
+          <p className="text-xs text-muted-foreground mb-4 leading-relaxed px-2">
+            {errMsg || 'The website blocked our crawler or is unreachable.'}
+          </p>
+          <button
+            onClick={() => onAudit(id)}
+            className="btn-primary h-8 px-4 text-xs mx-auto"
+          >
+            Try again
+          </button>
+        </div>
       ) : (
+        /* ── Unaudited / auditing state ── */
         <div className="py-5 text-center">
           <p className="text-sm text-muted-foreground mb-3">
             {isAuditing ? 'Analyzing competitor site…' : 'Not yet audited'}
@@ -264,14 +288,10 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
         <Target className="h-7 w-7 text-primary" />
       </div>
-      <h3 className="text-lg font-black tracking-tight text-foreground mb-2">
-        No competitors tracked yet
-      </h3>
+      <h3 className="text-lg font-black tracking-tight text-foreground mb-2">No competitors tracked yet</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
         Add up to 3 competitor domains and see exactly where you stand in AI search visibility.
       </p>
-
-      {/* Benefit pills */}
       <div className="flex flex-wrap gap-2 justify-center mb-7">
         {['See their AEO score', 'Compare category by category', 'Find their gaps'].map(b => (
           <span key={b} className="text-xs px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground">
@@ -279,7 +299,6 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
           </span>
         ))}
       </div>
-
       <button onClick={onAdd} className="btn-primary h-10 px-6 text-sm mx-auto">
         <Plus className="h-4 w-4" />
         Add first competitor
@@ -297,6 +316,9 @@ export default function CompetitorsPage() {
   const [myScore, setMyScore] = useState<number | null>(null)
   const [myCats, setMyCats] = useState({ schema: 0, content: 0, technical: 0, structure: 0 })
 
+  // Track previously-auditing IDs so we can detect auditing → failed transitions
+  const prevAuditingRef = useRef<Set<string>>(new Set())
+
   const fetchAll = useCallback(async () => {
     try {
       const [compRes, pagesRes] = await Promise.all([
@@ -305,7 +327,25 @@ export default function CompetitorsPage() {
       ])
       const compData = await compRes.json()
       const pagesData = await pagesRes.json()
-      setCompetitors(compData.competitors ?? [])
+      const newCompetitors: Competitor[] = compData.competitors ?? []
+
+      // Detect auditing → failed transitions and fire toasts
+      newCompetitors.forEach(c => {
+        const cid = (c._id as any).toString()
+        if (c.status === 'failed' && prevAuditingRef.current.has(cid)) {
+          const msg = (c as any).errorMessage || 'Could not reach the website'
+          toast.error(`Audit failed for ${c.domain} — ${msg}`, { duration: 6000 })
+        }
+      })
+
+      // Update ref with current auditing IDs
+      prevAuditingRef.current = new Set(
+        newCompetitors
+          .filter(c => c.status === 'auditing')
+          .map(c => (c._id as any).toString())
+      )
+
+      setCompetitors(newCompetitors)
 
       const pages = pagesData.pages ?? []
       const scored = pages.filter((p: any) => p.score !== undefined)
@@ -336,6 +376,8 @@ export default function CompetitorsPage() {
 
   async function auditCompetitor(id: string) {
     const toastId = toast.loading('Auditing competitor…')
+    // Mark as auditing in ref so transition detection works
+    prevAuditingRef.current.add(id)
     try {
       await fetch('/api/competitors', {
         method: 'POST',

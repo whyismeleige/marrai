@@ -1,12 +1,12 @@
 'use client'
 
 // src/app/dashboard/pages/page.tsx
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import {
   Plus, RefreshCw, Trash2, Loader2, ArrowUpDown,
   Globe, AlertCircle, CheckCircle2, Clock, ChevronRight,
-  Zap, FileSearch,
+  Zap, FileSearch, XCircle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
@@ -22,10 +22,11 @@ function scoreBg(score?: number) {
 }
 
 function statusIcon(status: PageStatus) {
-  if (status === 'auditing') return <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-  if (status === 'good')     return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-  if (status === 'critical') return <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+  if (status === 'auditing')   return <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+  if (status === 'good')       return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+  if (status === 'critical')   return <AlertCircle className="h-3.5 w-3.5 text-red-500" />
   if (status === 'needs_work') return <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+  if (status === 'failed')     return <XCircle className="h-3.5 w-3.5 text-red-400" />
   return <Clock className="h-3.5 w-3.5 text-muted-foreground" />
 }
 
@@ -79,16 +80,14 @@ function AddPageModal({
       <div className="surface-card w-full max-w-md rounded-2xl p-6 shadow-2xl">
         <h3 className="text-base font-semibold text-foreground mb-1">Add a page</h3>
         <p className="text-xs text-muted-foreground mb-5">
-          Enter the full URL of a page you want to track and audit.
+          Enter the full URL of any page you want to track and audit.
         </p>
 
-        <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-          Page URL <span className="text-red-500">*</span>
-        </label>
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5">URL</label>
         <input
           autoFocus
           type="url"
-          placeholder="https://yoursite.com/pricing"
+          placeholder="https://yoursite.com/about"
           value={url}
           onChange={e => setUrl(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
@@ -100,20 +99,19 @@ function AddPageModal({
         />
 
         <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-          Label <span className="text-muted-foreground/50">(optional)</span>
+          Label <span className="font-normal">(optional)</span>
         </label>
         <input
           type="text"
-          placeholder="e.g. Homepage, Pricing, Blog"
+          placeholder="Homepage, Pricing page…"
           value={label}
           onChange={e => setLabel(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          className="w-full h-10 px-3 rounded-xl border border-border bg-input text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition mb-4"
+          className="w-full h-10 px-3 rounded-xl border border-border bg-input text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition mb-1"
         />
+        {error && <p className="text-xs text-destructive mt-2 mb-1">{error}</p>}
 
-        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
-
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4">
           <button
             onClick={onClose}
             className="flex-1 h-10 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition"
@@ -125,130 +123,10 @@ function AddPageModal({
             disabled={loading}
             className="btn-primary flex-1 h-10 text-sm disabled:opacity-60"
           >
-            {loading
-              ? <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-              : 'Add Page'}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Add Page'}
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-// ─── Page Row Card ────────────────────────────────────────────────────────────
-
-function PageCard({
-  page,
-  onAudit,
-  onDelete,
-  auditing,
-}: {
-  page: BrandPage
-  onAudit: (id: string) => void
-  onDelete: (id: string) => void
-  auditing: boolean
-}) {
-  const id = (page._id as any).toString()
-  const domain = getDomain(page.url)
-  const isAuditing = page.status === 'auditing' || auditing
-
-  return (
-    <div className="surface-card rounded-2xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 group">
-
-      {/* Favicon + domain */}
-      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-        <img
-          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=16`}
-          alt=""
-          className="w-5 h-5 rounded-sm shrink-0"
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            {statusIcon(page.status)}
-            <p className="text-sm font-semibold text-foreground truncate">
-              {page.label || domain}
-            </p>
-          </div>
-          <p className="text-xs text-muted-foreground truncate">{page.url}</p>
-        </div>
-      </div>
-
-      {/* Score badge */}
-      <div className={cn(
-        'shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg tabular-nums',
-        scoreBg(page.score)
-      )}>
-        {page.score !== undefined ? `${page.score}/100` : '—'}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
-        {/* View details */}
-        <Link
-          href={`/dashboard/pages/${id}`}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-          title="View audit details"
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-
-        {/* Re-audit */}
-        <button
-          onClick={() => onAudit(id)}
-          disabled={isAuditing}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-40"
-          title="Re-audit"
-        >
-          {isAuditing
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <RefreshCw className="h-3.5 w-3.5" />}
-        </button>
-
-        {/* Delete */}
-        <button
-          onClick={() => onDelete(id)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
-          title="Remove page"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Empty State ─────────────────────────────────────────────────────────────
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <div className="surface-card rounded-2xl p-10 sm:p-14 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-        <FileSearch className="h-7 w-7 text-primary" />
-      </div>
-      <h3 className="text-lg font-black tracking-tight text-foreground mb-2">
-        No pages tracked yet
-      </h3>
-      <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
-        Add your homepage, pricing page, or any page you want to optimize for AI search visibility.
-      </p>
-
-      {/* Suggestions */}
-      <div className="flex flex-wrap gap-2 justify-center mb-7">
-        {['Homepage', 'Pricing', 'About Us', 'Blog', 'Contact'].map(label => (
-          <span
-            key={label}
-            className="text-xs px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground"
-          >
-            {label}
-          </span>
-        ))}
-      </div>
-
-      <button onClick={onAdd} className="btn-primary h-10 px-6 text-sm mx-auto">
-        <Plus className="h-4 w-4" />
-        Add your first page
-      </button>
     </div>
   )
 }
@@ -259,15 +137,38 @@ export default function PagesPage() {
   const [pages, setPages] = useState<BrandPage[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [auditingId, setAuditingId] = useState<string | null>(null)
   const [sortAsc, setSortAsc] = useState(false)
+  const [auditingId, setAuditingId] = useState<string | null>(null)
   const [auditingAll, setAuditingAll] = useState(false)
+
+  // Track which pages were auditing before the last fetch so we can detect
+  // auditing → failed transitions and fire a toast for each one.
+  const prevAuditingRef = useRef<Set<string>>(new Set())
 
   const fetchPages = useCallback(async () => {
     try {
       const res = await fetch('/api/pages')
       const data = await res.json()
-      setPages(data.pages ?? [])
+      const newPages: BrandPage[] = data.pages ?? []
+
+      // Detect auditing → failed transitions
+      newPages.forEach(p => {
+        const id = (p._id as any).toString()
+        if (p.status === 'failed' && prevAuditingRef.current.has(id)) {
+          const label = p.label || getDomain(p.url)
+          const msg = (p as any).errorMessage || 'Could not reach the website'
+          toast.error(`Audit failed for "${label}" — ${msg}`, { duration: 6000 })
+        }
+      })
+
+      // Update ref with the current set of auditing IDs
+      prevAuditingRef.current = new Set(
+        newPages
+          .filter(p => p.status === 'auditing')
+          .map(p => (p._id as any).toString())
+      )
+
+      setPages(newPages)
     } catch {
       // Silently fail — user still sees stale data
     }
@@ -294,6 +195,8 @@ export default function PagesPage() {
         body: JSON.stringify({ action: 'audit', pageId: id }),
       })
       if (!res.ok) throw new Error()
+      // Mark this page as auditing in our ref so the transition detection works
+      prevAuditingRef.current.add(id)
       toast.success('Audit started — results will appear shortly', { id: toastId })
       await fetchPages()
     } catch {
@@ -350,67 +253,151 @@ export default function PagesPage() {
             Track and audit every page for AI search visibility.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {pages.length > 0 && (
+        <div className="flex items-center gap-2 shrink-0">
+          {pages.length > 1 && (
             <button
               onClick={auditAll}
               disabled={auditingAll || pages.some(p => p.status === 'auditing')}
-              className="h-9 px-3 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1.5 disabled:opacity-50"
+              className="h-9 px-3 sm:px-4 text-sm rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {auditingAll
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Zap className="h-3.5 w-3.5" />}
+              {auditingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">Audit all</span>
             </button>
           )}
-          <button
-            onClick={() => setShowModal(true)}
-            className="btn-primary h-9 px-3 sm:px-4 text-sm flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden xs:inline">Add page</span>
-          </button>
+          {pages.length < 20 && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="btn-primary h-9 px-3 sm:px-4 text-sm flex items-center gap-1.5 shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden xs:inline">Add page</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Sort bar */}
-      {pages.length > 1 && (
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-muted-foreground">
-            {pages.length} page{pages.length !== 1 ? 's' : ''} tracked
-          </p>
-          <button
-            onClick={() => setSortAsc(prev => !prev)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowUpDown className="h-3 w-3" />
-            Score: {sortAsc ? 'Low → High' : 'High → Low'}
-          </button>
-        </div>
-      )}
-
-      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 text-primary animate-spin" />
         </div>
       ) : pages.length === 0 ? (
-        <EmptyState onAdd={() => setShowModal(true)} />
+        <div className="surface-card rounded-2xl p-10 sm:p-14 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+            <FileSearch className="h-7 w-7 text-primary" />
+          </div>
+          <h3 className="text-lg font-black tracking-tight text-foreground mb-2">No pages tracked yet</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
+            Add your homepage and key landing pages to start measuring your AEO score.
+          </p>
+          <button onClick={() => setShowModal(true)} className="btn-primary h-10 px-6 text-sm mx-auto">
+            <Plus className="h-4 w-4" />
+            Add your first page
+          </button>
+        </div>
       ) : (
-        <div className="space-y-2">
-          {sorted.map(page => (
-            <PageCard
-              key={(page._id as any).toString()}
-              page={page}
-              onAudit={auditPage}
-              onDelete={deletePage}
-              auditing={auditingId === (page._id as any).toString()}
-            />
-          ))}
+        <div className="surface-card rounded-2xl overflow-hidden">
+          {/* Table header */}
+          <div className="flex items-center px-4 py-2.5 border-b border-border bg-muted/30">
+            <div className="flex-1 text-xs font-medium text-muted-foreground">Page</div>
+            <button
+              onClick={() => setSortAsc(v => !v)}
+              className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mr-4"
+            >
+              Score
+              <ArrowUpDown className="h-3 w-3" />
+            </button>
+            <div className="w-16 text-xs font-medium text-muted-foreground text-center hidden sm:block">Status</div>
+            <div className="w-20" />
+          </div>
+
+          {/* Rows */}
+          <div className="divide-y divide-border">
+            {sorted.map(page => {
+              const id = (page._id as any).toString()
+              const isFailed = page.status === 'failed'
+              const errMsg = (page as any).errorMessage as string | undefined
+
+              return (
+                <div key={id} className={cn(
+                  'flex items-center px-4 py-3 gap-3 hover:bg-muted/20 transition-colors group',
+                  isFailed && 'bg-red-500/3'
+                )}>
+                  {/* Icon + label */}
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {page.label || getDomain(page.url)}
+                      </p>
+                      {isFailed && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 shrink-0">
+                          Audit failed
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {isFailed && errMsg
+                        ? errMsg
+                        : getDomain(page.url)}
+                    </p>
+                  </div>
+
+                  {/* Score */}
+                  <div className={cn(
+                    'text-sm font-bold tabular-nums px-2.5 py-1 rounded-lg shrink-0',
+                    isFailed ? 'text-muted-foreground' : scoreBg(page.score)
+                  )}>
+                    {isFailed ? '—' : (page.score !== undefined ? page.score : '—')}
+                  </div>
+
+                  {/* Status icon */}
+                  <div className="w-16 flex justify-center hidden sm:flex">
+                    {statusIcon(page.status)}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 w-20 justify-end">
+                    {!isFailed && page.status !== 'auditing' && (
+                      <Link
+                        href={`/dashboard/pages/${id}`}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                        title="View report"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => auditPage(id)}
+                      disabled={page.status === 'auditing' || auditingId === id}
+                      className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-40"
+                      title={isFailed ? 'Retry audit' : 'Re-audit'}
+                    >
+                      {page.status === 'auditing' || auditingId === id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <RefreshCw className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => deletePage(id)}
+                      className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Remove page"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
-      {/* Modal */}
+      <p className="text-xs text-muted-foreground mt-4 text-center">
+        {pages.length}/20 pages tracked
+      </p>
+
       {showModal && (
         <AddPageModal
           onClose={() => setShowModal(false)}

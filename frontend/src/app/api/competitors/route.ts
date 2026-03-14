@@ -99,8 +99,6 @@ export async function DELETE(request: NextRequest) {
 }
 
 async function auditCompetitorInBackground(competitorId: string) {
-  const { getCompetitors } = await import('@/lib/mongodb')
-  // We need a single competitor — fetch by ID via ObjectId
   const { ObjectId } = await import('mongodb')
   const clientPromise = (await import('@/lib/db')).default
   const client = await clientPromise
@@ -114,9 +112,11 @@ async function auditCompetitorInBackground(competitorId: string) {
       categoryScores: result.categoryScores,
       status: 'done',
       lastAuditedAt: new Date(),
+      errorMessage: undefined, // clear any previous error
     })
   } catch (err: any) {
-    await updateCompetitor(competitorId, { status: 'failed' })
-    console.error(`Competitor audit failed for ${doc.domain}:`, err.message)
+    const errorMessage = err?.message || 'Could not reach website'
+    await updateCompetitor(competitorId, { status: 'failed', errorMessage })
+    console.error(`Competitor audit failed for ${doc.domain}:`, errorMessage)
   }
 }

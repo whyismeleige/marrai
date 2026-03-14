@@ -128,8 +128,9 @@ async function auditPageInBackground(pageId: string) {
     const result = await analyzeWebsite(page.url)
     await updateBrandPageWithAuditResult(pageId, result.score, result.categoryScores, result.findings)
   } catch (err: any) {
-    await updateBrandPage(pageId, { status: 'critical' })
-    console.error(`Onboarding homepage audit failed:`, err.message)
+    const errorMessage = err?.message || 'Could not reach website'
+    await updateBrandPage(pageId, { status: 'failed', errorMessage })
+    console.error(`Onboarding homepage audit failed:`, errorMessage)
   }
 }
 
@@ -145,9 +146,11 @@ async function auditCompetitorInBackground(competitorId: string, domain: string)
       categoryScores: result.categoryScores,
       status: 'done',
       lastAuditedAt: new Date(),
+      errorMessage: undefined,
     })
   } catch (err: any) {
-    await updateCompetitor(competitorId, { status: 'failed' })
-    console.error(`Onboarding competitor audit failed for ${domain}:`, err.message)
+    const errorMessage = err?.message || 'Could not reach website'
+    await updateCompetitor(competitorId, { status: 'failed', errorMessage })
+    console.error(`Onboarding competitor audit failed for ${domain}:`, errorMessage)
   }
 }

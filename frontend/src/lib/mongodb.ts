@@ -87,7 +87,7 @@ export interface Brand {
 
 // ─── BrandPage ────────────────────────────────────────────────────────────────
 
-export type PageStatus = 'unaudited' | 'auditing' | 'good' | 'needs_work' | 'critical'
+export type PageStatus = 'unaudited' | 'auditing' | 'good' | 'needs_work' | 'critical' | 'failed'
 
 export interface ScoreSnapshot {
   score: number
@@ -104,6 +104,7 @@ export interface BrandPage {
   status: PageStatus
   categoryScores?: CategoryScores
   findings?: AuditFinding[]
+  errorMessage?: string
   lastAuditedAt?: Date
   auditHistory: ScoreSnapshot[] // last 10 scores for sparkline
   createdAt: Date
@@ -121,6 +122,7 @@ export interface Competitor {
   categoryScores?: CategoryScores
   status: 'unaudited' | 'auditing' | 'done' | 'failed'
   lastAuditedAt?: Date
+  errorMessage?: string
   createdAt: Date
   updatedAt: Date
 }

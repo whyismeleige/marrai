@@ -15,7 +15,7 @@ export async function sendAuditEmail(
   
   try {
     await resend.emails.send({
-      from: 'Marrai <onboarding@resend.dev>', // Change later with your domain
+      from: 'Marrai <onboarding@marrai.tech>', // Change later with your domain
       to: email,
       subject: `Your Marrai Analysis: ${score}/100 ${gradeEmoji}`,
       html: `

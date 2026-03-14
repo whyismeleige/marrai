@@ -30,11 +30,12 @@ export default function PageAuditActions({
 
       if (!res.ok) throw new Error()
 
-      toast.success('Audit started — results will update in ~30s', { id: toastId })
+      toast.loading('Auditing page — this takes ~30s…', { id: toastId })
 
       // Poll for completion and refresh the server component
       const poll = async (retries = 12) => {
         if (retries <= 0) {
+          toast.dismiss(toastId)
           router.refresh()
           setLoading(false)
           return
@@ -42,7 +43,15 @@ export default function PageAuditActions({
         try {
           const r = await fetch(`/api/pages/${pageId}`)
           const data = await r.json()
-          if (data.page?.status !== 'auditing') {
+          const pageStatus = data.page?.status
+
+          if (pageStatus === 'failed') {
+            const errMsg = data.page?.errorMessage || 'Could not reach the website'
+            toast.error(`Audit failed — ${errMsg}`, { id: toastId, duration: 6000 })
+            router.refresh()
+            setLoading(false)
+          } else if (pageStatus !== 'auditing') {
+            toast.success('Audit complete! Scores updated.', { id: toastId })
             router.refresh()
             setLoading(false)
           } else {

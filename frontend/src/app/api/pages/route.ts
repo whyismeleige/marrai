@@ -132,7 +132,8 @@ async function auditPageInBackground(pageId: string) {
       result.findings
     )
   } catch (err: any) {
-    await updateBrandPage(pageId, { status: 'critical' })
-    console.error(`Audit failed for page ${pageId}:`, err.message)
+    const errorMessage = err?.message || 'Could not reach website'
+    await updateBrandPage(pageId, { status: 'failed', errorMessage })
+    console.error(`Audit failed for page ${pageId}:`, errorMessage)
   }
 }
