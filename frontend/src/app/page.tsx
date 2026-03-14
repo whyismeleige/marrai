@@ -235,16 +235,20 @@ function ScoreMockup() {
 
           {/* Category bars */}
           <div className="px-5 py-4 border-b border-border/60 space-y-3">
-            {catBars.map(bar => (
-              <div key={bar.label}>
+            {catBars.map((bar, idx) => (
+              <div key={bar.label} style={{ animationDelay: `${idx * 60}ms` }} className="fade-up">
                 <div className="flex justify-between text-[11px] mb-1.5">
                   <span className="text-muted-foreground font-medium">{bar.label}</span>
                   <span className="text-foreground font-bold tabular-nums">{bar.score}/{bar.max}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${bar.color}`}
-                    style={{ width: `${(bar.score / bar.max) * 100}%` }}
+                    className={`h-full rounded-full ${bar.color} transition-all duration-1000`}
+                    style={{ 
+                      width: `${(bar.score / bar.max) * 100}%`,
+                      animation: `progress-fill 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`,
+                      animationDelay: `${idx * 100}ms`
+                    }}
                   />
                 </div>
               </div>
@@ -254,9 +258,9 @@ function ScoreMockup() {
           {/* Findings */}
           <div className="px-5 py-4 space-y-2">
             {mockFindings.map((f, i) => (
-              <div key={i} className="flex items-start gap-2">
+              <div key={i} className="flex items-start gap-2 fade-up" style={{ animationDelay: `${200 + i * 60}ms` }}>
                 {f.type === 'critical' ? (
-                  <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                  <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5 animate-bounce" />
                 ) : f.type === 'warning' ? (
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                 ) : (
@@ -269,10 +273,10 @@ function ScoreMockup() {
 
           {/* CTA */}
           <div className="px-5 pb-5">
-            <div className="h-9 rounded-xl bg-primary flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 transition-opacity">
-              <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
+            <div className="h-9 rounded-xl bg-primary flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:scale-105 active:scale-95">
+              <Sparkles className="h-3.5 w-3.5 text-primary-foreground animate-pulse" />
               <span className="text-[12px] font-bold text-primary-foreground tracking-tight">View full report</span>
-              <ArrowRight className="h-3 w-3 text-primary-foreground" />
+              <ArrowRight className="h-3 w-3 text-primary-foreground transition-transform group-hover:translate-x-1" />
             </div>
           </div>
         </div>
@@ -281,16 +285,16 @@ function ScoreMockup() {
   )
 }
 
-/* ── FAQ Item ─────────────────────────────────────────────── */
+/* ── FAQ Item ─────────────────────────────────────────── */
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
     <details className="group border-b border-border/60 last:border-0">
-      <summary className="flex items-center justify-between gap-4 py-5 cursor-pointer list-none text-sm font-semibold text-foreground hover:text-primary transition-colors select-none">
+      <summary className="flex items-center justify-between gap-4 py-5 cursor-pointer list-none text-sm font-semibold text-foreground hover:text-primary transition-colors select-none hover:bg-muted/30 px-3 -mx-3 rounded-md">
         {q}
-        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 group-open:rotate-90" />
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-300 group-open:rotate-90" />
       </summary>
-      <p className="pb-5 text-sm text-muted-foreground leading-relaxed -mt-1">{a}</p>
+      <p className="pb-5 text-sm text-muted-foreground leading-relaxed -mt-1 animate-accordion-open px-3">{a}</p>
     </details>
   )
 }
@@ -382,8 +386,8 @@ export default function HomePage() {
         <div className="border-y border-border/60 bg-muted/20">
           <div className="max-w-4xl mx-auto px-5 py-10">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-4 text-center sm:divide-x sm:divide-border/60">
-              {STATS.map(s => (
-                <div key={s.value} className="px-4">
+              {STATS.map((s, i) => (
+                <div key={s.value} className="px-4 fade-up" style={{ animationDelay: `${i * 100}ms` }}>
                   <div className="text-3xl sm:text-4xl font-black tracking-tight text-foreground mb-1.5">
                     {s.value}
                   </div>
@@ -397,7 +401,7 @@ export default function HomePage() {
         {/* ── Problem ───────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-5 py-20 sm:py-24">
           <div className="grid md:grid-cols-2 gap-12 lg:gap-20 items-center">
-            <div>
+            <div className="fade-up">
               <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-4">The Problem</p>
               <h2 className="text-3xl sm:text-4xl font-black tracking-[-0.03em] text-foreground mb-5 leading-tight">
                 The AI search revolution<br />is already here
@@ -413,8 +417,8 @@ export default function HomePage() {
                   'AI tools now handle millions of buying decisions daily',
                   'Traditional SEO does nothing for AI visibility',
                   'First-movers in AEO will dominate their category',
-                ].map(item => (
-                  <div key={item} className="flex items-start gap-2.5">
+                ].map((item, i) => (
+                  <div key={item} className="flex items-start gap-2.5 fade-up" style={{ animationDelay: `${i * 80}ms` }}>
                     <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <span className="text-sm text-muted-foreground">{item}</span>
                   </div>
@@ -423,7 +427,7 @@ export default function HomePage() {
             </div>
 
             {/* Visual: AI platform pills */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 fade-up delay-100">
               {[
                 { name: 'ChatGPT',    icon: '✦', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', cites: '400M+ weekly users' },
                 { name: 'Perplexity', icon: '◈', color: 'text-blue-500',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    cites: '15M+ active users' },
@@ -432,17 +436,17 @@ export default function HomePage() {
               ].map((ai, i) => (
                 <div
                   key={ai.name}
-                  className="surface-card-hover rounded-xl p-4 flex items-center gap-4 fade-up"
+                  className="surface-card-hover rounded-xl p-4 flex items-center gap-4 fade-up transition-all duration-300 hover:translate-x-2 hover:shadow-md group"
                   style={{ animationDelay: `${i * 80}ms` }}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${ai.bg} border ${ai.border} shrink-0`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${ai.bg} border ${ai.border} shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12`}>
                     <span className={ai.color}>{ai.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground">{ai.name}</p>
                     <p className="text-xs text-muted-foreground">{ai.cites}</p>
                   </div>
-                  <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ai.bg} ${ai.color} border ${ai.border}`}>
+                  <div className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ai.bg} ${ai.color} border ${ai.border} transition-all duration-300 group-hover:scale-110`}>
                     Citing sources
                   </div>
                 </div>
@@ -454,7 +458,7 @@ export default function HomePage() {
         {/* ── Features ──────────────────────────────────────── */}
         <section id="features" className="border-t border-border/60 bg-muted/20">
           <div className="max-w-6xl mx-auto px-5 py-20 sm:py-24">
-            <div className="max-w-xl mb-14">
+            <div className="max-w-xl mb-14 fade-up">
               <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-4">What we check</p>
               <h2 className="text-3xl sm:text-4xl font-black tracking-[-0.03em] text-foreground">
                 20+ signals that determine<br />your AI visibility
@@ -465,10 +469,10 @@ export default function HomePage() {
               {FEATURES.map((f, i) => (
                 <div
                   key={f.title}
-                  className="surface-card-hover rounded-xl p-5 fade-up"
+                  className="surface-card-hover rounded-xl p-5 fade-up transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/10 group"
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${f.bg}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${f.bg} transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110`}>
                     <f.icon className={`h-4.5 w-4.5 ${f.color}`} style={{ height: '1.1rem', width: '1.1rem' }} />
                   </div>
                   <h3 className="font-bold text-foreground text-sm mb-2">{f.title}</h3>
@@ -482,7 +486,7 @@ export default function HomePage() {
         {/* ── How it works ──────────────────────────────────── */}
         <section id="how-it-works" className="border-t border-border/60">
           <div className="max-w-6xl mx-auto px-5 py-20 sm:py-24">
-            <div className="max-w-xl mb-14">
+            <div className="max-w-xl mb-14 fade-up">
               <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-4">Process</p>
               <h2 className="text-3xl sm:text-4xl font-black tracking-[-0.03em] text-foreground">
                 Three steps to clarity
@@ -491,15 +495,15 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-3 gap-6 relative">
               {STEPS.map((step, i) => (
-                <div key={step.n} className="relative">
+                <div key={step.n} className="relative fade-up" style={{ animationDelay: `${i * 100}ms` }}>
                   {/* Connector */}
                   {i < STEPS.length - 1 && (
-                    <div className="hidden md:block absolute top-7 left-[calc(100%-1.5rem)] right-0 h-px border-t border-dashed border-border z-10" />
+                    <div className="hidden md:block absolute top-7 left-[calc(100%-1.5rem)] right-0 h-px border-t border-dashed border-border z-10 connector-line" />
                   )}
-                  <div className="surface-card rounded-xl p-6 h-full">
+                  <div className="surface-card rounded-xl p-6 h-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1">
                     {/* Step number + icon */}
                     <div className="flex items-center gap-3 mb-5">
-                      <div className="w-12 h-12 rounded-xl border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0">
+                      <div className="w-12 h-12 rounded-xl border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
                         <step.icon className="h-5 w-5 text-primary" />
                       </div>
                       <span className="text-xs font-black text-primary tracking-widest">{step.n}</span>
@@ -512,7 +516,7 @@ export default function HomePage() {
             </div>
 
             {/* CTA under steps */}
-            <div className="mt-10 text-center">
+            <div className="mt-10 text-center fade-up delay-300">
               <Link href="/audit" className="btn-primary h-11 px-7 text-sm">
                 Start your free audit
                 <ArrowRight className="h-4 w-4" />
@@ -524,13 +528,13 @@ export default function HomePage() {
         {/* ── FAQ ───────────────────────────────────────────── */}
         <section id="faq" className="border-t border-border/60 bg-muted/20">
           <div className="max-w-3xl mx-auto px-5 py-20 sm:py-24">
-            <div className="mb-12 text-center">
+            <div className="mb-12 text-center fade-up">
               <p className="text-xs font-bold tracking-[0.18em] uppercase text-primary mb-4">FAQ</p>
               <h2 className="text-3xl sm:text-4xl font-black tracking-[-0.03em] text-foreground">
                 Common questions
               </h2>
             </div>
-            <div className="surface-card px-5 sm:px-7 divide-y divide-border/60 rounded-2xl">
+            <div className="surface-card px-5 sm:px-7 divide-y divide-border/60 rounded-2xl fade-up">
               {FAQS.map((faq, i) => (
                 <FaqItem key={i} q={faq.q} a={faq.a} />
               ))}
@@ -548,21 +552,23 @@ export default function HomePage() {
             />
 
             <div className="relative max-w-2xl mx-auto px-5 py-24 sm:py-32 text-center">
-              <div className="badge mx-auto mb-8">
+              <div className="badge mx-auto mb-8 fade-up">
                 <Sparkles className="h-3 w-3 text-primary" />
                 Free forever · No signup required
               </div>
-              <h2 className="text-4xl sm:text-5xl font-black tracking-[-0.04em] text-foreground mb-5 leading-[0.95]">
+              <h2 className="text-4xl sm:text-5xl font-black tracking-[-0.04em] text-foreground mb-5 leading-[0.95] fade-up delay-100">
                 Find out where you<br />stand in AI search.
               </h2>
-              <p className="text-muted-foreground mb-10 text-base leading-relaxed">
+              <p className="text-muted-foreground mb-10 text-base leading-relaxed fade-up delay-150">
                 Get a full AEO audit with your score, prioritised issues, and exact fixes.
                 Takes 60 seconds. Costs nothing.
               </p>
-              <Link href="/audit" className="btn-primary h-12 px-8 text-base">
-                Run Free Audit
-                <ArrowRight className="h-[1.1rem] w-[1.1rem]" />
-              </Link>
+              <div className="fade-up delay-200">
+                <Link href="/audit" className="btn-primary h-12 px-8 text-base">
+                  Run Free Audit
+                  <ArrowRight className="h-[1.1rem] w-[1.1rem]" />
+                </Link>
+              </div>
             </div>
           </div>
         </section>
