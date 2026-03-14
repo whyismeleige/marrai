@@ -1,7 +1,9 @@
+// src/app/dashboard/layout.tsx
 import { redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { getBrandByUserId } from '@/lib/mongodb'
 import DashboardSidebar from '@/components/dashboard/sidebar'
+import ToastProvider from '@/components/providers/toast-provider'
 
 export default async function DashboardLayout({
   children,
@@ -27,16 +29,20 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <DashboardSidebar brand={serializedBrand} />
-      {/*
-        pt-14: clears the fixed mobile top bar (h-14)
-        pb-16: clears the fixed mobile bottom tab bar (h-16)
-        lg:pt-0 lg:pb-0: desktop sidebar handles layout, no offset needed
-      */}
-      <main className="flex-1 min-w-0 overflow-auto pt-14 pb-16 lg:pt-0 lg:pb-0">
-        {children}
-      </main>
-    </div>
+    <>
+      <div className="min-h-screen bg-background flex">
+        <DashboardSidebar brand={serializedBrand} />
+        {/*
+          pt-14: clears the fixed mobile top bar (h-14)
+          pb-16: clears the fixed mobile bottom tab bar (h-16)
+          lg:pt-0 lg:pb-0: desktop sidebar handles layout, no offset needed
+        */}
+        <main className="flex-1 min-w-0 overflow-auto pt-14 pb-16 lg:pt-0 lg:pb-0">
+          {children}
+        </main>
+      </div>
+      {/* Toast notifications — rendered outside the layout so they float freely */}
+      <ToastProvider />
+    </>
   )
 }

@@ -1,80 +1,93 @@
 'use client'
 
+// src/app/dashboard/competitors/page.tsx
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, RefreshCw, Trash2, Loader2, X, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react'
+import { Plus, Loader2, RefreshCw, Trash2, BarChart3, TrendingUp, TrendingDown, Minus, Target } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
-import type { Competitor } from '@/lib/mongodb'
+import type { Competitor, CategoryScores } from '@/lib/mongodb'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const CATS = ['schema', 'content', 'technical', 'structure'] as const
-
-function scoreColor(s: number | undefined) {
-  if (s === undefined) return 'text-muted-foreground'
-  if (s >= 70) return 'text-green-500'
-  if (s >= 45) return 'text-amber-500'
+function scoreBg(score?: number) {
+  if (score === undefined) return 'text-muted-foreground'
+  if (score >= 70) return 'text-emerald-500'
+  if (score >= 45) return 'text-amber-500'
   return 'text-red-500'
 }
 
-function scoreBg(s: number | undefined) {
-  if (s === undefined) return 'bg-muted'
-  if (s >= 70) return 'bg-green-500'
-  if (s >= 45) return 'bg-amber-500'
+function scoreBgFull(score?: number) {
+  if (score === undefined) return 'bg-muted/50'
+  if (score >= 70) return 'bg-emerald-500'
+  if (score >= 45) return 'bg-amber-500'
   return 'bg-red-500'
 }
 
-// ─── Add competitor modal ─────────────────────────────────────────────────────
+// ─── Add Competitor Modal ─────────────────────────────────────────────────────
 
 function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [domain, setDomain] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   async function submit() {
-    if (!domain.trim()) { setError('Domain is required'); return }
-    setLoading(true); setError('')
+    setError('')
+    const d = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+    if (!d) { setError('Domain is required'); return }
+
+    setLoading(true)
     try {
       const res = await fetch('/api/competitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'add', domain: domain.trim() }),
+        body: JSON.stringify({ action: 'add', domain: d }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) { setError(data.error || 'Failed to add competitor'); setLoading(false); return }
+
+      toast.success(`${d} added to competitors!`)
       onAdded()
-    } catch (e: any) {
-      setError(e.message)
+      onClose()
+    } catch {
+      setError('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
 
   return (
-    // Bottom sheet on mobile, centered on desktop
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 sm:p-4">
-      <div className="surface-card rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-foreground">Add Competitor</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-muted flex items-center justify-center">
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-        <label className="block text-xs font-medium text-muted-foreground mb-1">Domain</label>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-0"
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="surface-card w-full max-w-md rounded-2xl p-6 shadow-2xl">
+        <h3 className="text-base font-semibold text-foreground mb-1">Add a competitor</h3>
+        <p className="text-xs text-muted-foreground mb-5">
+          Enter a competitor's domain to benchmark your AEO score against theirs.
+        </p>
+
+        <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+          Domain
+        </label>
         <input
           autoFocus
           type="text"
-          inputMode="url"
-          placeholder="e.g. competitor.com"
+          placeholder="competitor.com"
           value={domain}
-          onChange={e => { setDomain(e.target.value); setError('') }}
+          onChange={e => setDomain(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           className={cn(
-            'w-full h-10 px-3 rounded-xl border bg-input text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition mb-4',
+            'w-full h-10 px-3 rounded-xl border bg-input text-sm text-foreground placeholder:text-muted-foreground',
+            'focus:outline-none focus:ring-2 focus:ring-ring transition mb-1',
             error ? 'border-destructive' : 'border-border'
           )}
         />
         {error && <p className="text-xs text-destructive mb-3">{error}</p>}
-        <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition">
+
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={onClose}
+            className="flex-1 h-10 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition"
+          >
             Cancel
           </button>
           <button
@@ -90,7 +103,7 @@ function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
   )
 }
 
-// ─── Competitor card ──────────────────────────────────────────────────────────
+// ─── Competitor Card ──────────────────────────────────────────────────────────
 
 function CompetitorCard({
   competitor,
@@ -115,10 +128,17 @@ function CompetitorCard({
 
   const overall = compare(myScores.overall, competitor.score)
 
+  const CATEGORIES = [
+    { key: 'schema',    label: 'Schema',    max: 25, mine: myScores.schema,    theirs: competitor.categoryScores?.schema },
+    { key: 'content',   label: 'Content',   max: 30, mine: myScores.content,   theirs: competitor.categoryScores?.content },
+    { key: 'technical', label: 'Technical', max: 25, mine: myScores.technical, theirs: competitor.categoryScores?.technical },
+    { key: 'structure', label: 'Structure', max: 20, mine: myScores.structure, theirs: competitor.categoryScores?.structure },
+  ]
+
   return (
     <div className="surface-card rounded-2xl p-4 sm:p-5">
       {/* Header */}
-      <div className="flex items-start justify-between mb-4 sm:mb-5">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2.5 min-w-0">
           <img
             src={`https://www.google.com/s2/favicons?domain=${competitor.domain}&sz=16`}
@@ -135,12 +155,13 @@ function CompetitorCard({
             )}
           </div>
         </div>
-        <div className="flex gap-1 shrink-0">
+
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => onAudit(id)}
             disabled={isAuditing}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-40"
-            title="Re-audit"
+            title="Re-audit competitor"
           >
             {isAuditing
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -149,102 +170,120 @@ function CompetitorCard({
           <button
             onClick={() => onDelete(id)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+            title="Remove competitor"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Score comparison */}
-      {competitor.score !== undefined ? (
+      {/* Scores comparison */}
+      {competitor.score !== undefined && competitor.status === 'done' ? (
         <>
-          <div className="flex items-center justify-between mb-4">
+          {/* Overall score comparison */}
+          <div className="flex items-center justify-between mb-4 p-3 rounded-xl bg-muted/40 border border-border/60">
             <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Them</p>
-              <p className={cn('text-2xl font-black', scoreColor(competitor.score))}>
-                {competitor.score}
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center gap-1">
-              {overall === 'ahead' && (
-                <>
-                  <TrendingUp className="h-5 w-5 text-green-500" />
-                  <span className="text-[10px] font-semibold text-green-500">You're ahead</span>
-                </>
-              )}
-              {overall === 'behind' && (
-                <>
-                  <TrendingDown className="h-5 w-5 text-red-500" />
-                  <span className="text-[10px] font-semibold text-red-500">Falling behind</span>
-                </>
-              )}
-              {overall === 'tied' && (
-                <>
-                  <Minus className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-[10px] font-semibold text-muted-foreground">Tied</span>
-                </>
-              )}
-              {overall === null && <span className="text-xs text-muted-foreground">vs</span>}
-            </div>
-
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">You</p>
-              <p className={cn('text-2xl font-black', scoreColor(myScores.overall ?? undefined))}>
+              <div className={`text-xl font-black tabular-nums ${myScores.overall !== null ? scoreBg(myScores.overall) : 'text-muted-foreground'}`}>
                 {myScores.overall ?? '—'}
-              </p>
+              </div>
+              <div className="text-[10px] text-muted-foreground font-medium mt-0.5">You</div>
+            </div>
+
+            <div className="flex items-center gap-1.5 px-2">
+              {overall === 'ahead' && <TrendingUp className="h-4 w-4 text-emerald-500" />}
+              {overall === 'behind' && <TrendingDown className="h-4 w-4 text-red-500" />}
+              {overall === 'tied' && <Minus className="h-4 w-4 text-muted-foreground" />}
+              {overall === null && <Minus className="h-4 w-4 text-muted-foreground" />}
+              <span className={cn(
+                'text-xs font-semibold',
+                overall === 'ahead' ? 'text-emerald-500' :
+                overall === 'behind' ? 'text-red-500' : 'text-muted-foreground'
+              )}>
+                {overall === 'ahead' ? 'Ahead' : overall === 'behind' ? 'Behind' : '—'}
+              </span>
+            </div>
+
+            <div className="text-center">
+              <div className={`text-xl font-black tabular-nums ${scoreBg(competitor.score)}`}>
+                {competitor.score}
+              </div>
+              <div className="text-[10px] text-muted-foreground font-medium mt-0.5">Them</div>
             </div>
           </div>
 
-          {/* Category bars */}
+          {/* Category breakdown */}
           <div className="space-y-2.5">
-            {CATS.map(cat => {
-              const theirScore = competitor.categoryScores?.[cat]
-              const myScore = myScores[cat]
-              const cmp = compare(myScore, theirScore)
-              return (
-                <div key={cat}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground capitalize">{cat}</span>
-                    <span className="flex items-center gap-1">
-                      {cmp === 'ahead' && <TrendingUp className="h-3 w-3 text-green-500" />}
-                      {cmp === 'behind' && <TrendingDown className="h-3 w-3 text-red-500" />}
-                      <span className="text-foreground font-medium">{myScore} vs {theirScore ?? '?'}</span>
-                    </span>
-                  </div>
-                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-muted-foreground/30"
-                      style={{ width: `${theirScore !== undefined ? (theirScore / 30) * 100 : 0}%` }}
-                    />
-                    <div
-                      className={cn('absolute inset-y-0 left-0 rounded-full opacity-80', scoreBg(myScore || undefined))}
-                      style={{ width: `${(myScore / 30) * 100}%` }}
-                    />
+            {CATEGORIES.map(({ key, label, max, mine, theirs }) => (
+              <div key={key}>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-muted-foreground font-medium">{label}</span>
+                  <div className="flex items-center gap-1.5 tabular-nums">
+                    <span className={cn('font-bold', scoreBg(mine || undefined))}>{mine}/{max}</span>
+                    <span className="text-muted-foreground/40">vs</span>
+                    <span className={cn('font-bold', scoreBg(theirs))}>{theirs ?? '?'}/{max}</span>
                   </div>
                 </div>
-              )
-            })}
+                <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                  {/* Theirs */}
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-muted-foreground/25"
+                    style={{ width: `${theirs !== undefined ? (theirs / max) * 100 : 0}%` }}
+                  />
+                  {/* Mine */}
+                  <div
+                    className={cn('absolute inset-y-0 left-0 rounded-full opacity-80', scoreBgFull(mine || undefined))}
+                    style={{ width: `${(mine / max) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </>
       ) : (
         <div className="py-5 text-center">
           <p className="text-sm text-muted-foreground mb-3">
-            {isAuditing ? 'Auditing competitor…' : 'Not yet audited'}
+            {isAuditing ? 'Analyzing competitor site…' : 'Not yet audited'}
           </p>
           {!isAuditing && (
-            <button
-              onClick={() => onAudit(id)}
-              className="btn-primary h-9 px-4 text-xs mx-auto"
-            >
+            <button onClick={() => onAudit(id)} className="btn-primary h-9 px-4 text-xs mx-auto">
               Audit now
             </button>
           )}
-          {isAuditing && (
-            <Loader2 className="h-5 w-5 text-primary animate-spin mx-auto" />
-          )}
+          {isAuditing && <Loader2 className="h-5 w-5 text-primary animate-spin mx-auto" />}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Empty State ─────────────────────────────────────────────────────────────
+
+function EmptyState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="surface-card rounded-2xl p-10 sm:p-14 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+        <Target className="h-7 w-7 text-primary" />
+      </div>
+      <h3 className="text-lg font-black tracking-tight text-foreground mb-2">
+        No competitors tracked yet
+      </h3>
+      <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
+        Add up to 3 competitor domains and see exactly where you stand in AI search visibility.
+      </p>
+
+      {/* Benefit pills */}
+      <div className="flex flex-wrap gap-2 justify-center mb-7">
+        {['See their AEO score', 'Compare category by category', 'Find their gaps'].map(b => (
+          <span key={b} className="text-xs px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground">
+            {b}
+          </span>
+        ))}
+      </div>
+
+      <button onClick={onAdd} className="btn-primary h-10 px-6 text-sm mx-auto">
+        <Plus className="h-4 w-4" />
+        Add first competitor
+      </button>
     </div>
   )
 }
@@ -275,7 +314,12 @@ export default function CompetitorsPage() {
         setMyScore(avg)
         const catAvg = (key: string) =>
           Math.round(scored.reduce((acc: number, p: any) => acc + (p.categoryScores?.[key] ?? 0), 0) / scored.length)
-        setMyCats({ schema: catAvg('schema'), content: catAvg('content'), technical: catAvg('technical'), structure: catAvg('structure') })
+        setMyCats({
+          schema: catAvg('schema'),
+          content: catAvg('content'),
+          technical: catAvg('technical'),
+          structure: catAvg('structure'),
+        })
       }
     } catch {}
     setLoading(false)
@@ -291,23 +335,44 @@ export default function CompetitorsPage() {
   }, [competitors, fetchAll])
 
   async function auditCompetitor(id: string) {
-    await fetch('/api/competitors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'audit', competitorId: id }),
-    })
-    await fetchAll()
+    const toastId = toast.loading('Auditing competitor…')
+    try {
+      await fetch('/api/competitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'audit', competitorId: id }),
+      })
+      toast.success('Competitor audit started', { id: toastId })
+      await fetchAll()
+    } catch {
+      toast.error('Failed to start competitor audit.', { id: toastId })
+    }
   }
 
   async function deleteCompetitor(id: string) {
     if (!confirm('Remove this competitor?')) return
-    await fetch(`/api/competitors?id=${id}`, { method: 'DELETE' })
-    setCompetitors(prev => prev.filter(c => (c._id as any).toString() !== id))
+    const toastId = toast.loading('Removing competitor…')
+    try {
+      const res = await fetch(`/api/competitors?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      setCompetitors(prev => prev.filter(c => (c._id as any).toString() !== id))
+      toast.success('Competitor removed', { id: toastId })
+    } catch {
+      toast.error('Failed to remove competitor.', { id: toastId })
+    }
+  }
+
+  const myScores = {
+    overall: myScore,
+    schema: myCats.schema,
+    content: myCats.content,
+    technical: myCats.technical,
+    structure: myCats.structure,
   }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-      {/* Header — stacks on mobile */}
+      {/* Header */}
       <div className="flex items-start justify-between mb-5 sm:mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Competitors</h1>
@@ -331,28 +396,14 @@ export default function CompetitorsPage() {
           <Loader2 className="h-6 w-6 text-primary animate-spin" />
         </div>
       ) : competitors.length === 0 ? (
-        <div className="surface-card rounded-2xl p-10 sm:p-12 text-center">
-          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mx-auto mb-4">
-            <BarChart3 className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h3 className="text-base font-semibold text-foreground mb-1">No competitors yet</h3>
-          <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
-            Add up to 3 competitor domains and benchmark your AEO performance.
-          </p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="btn-primary h-10 px-5 text-sm mx-auto"
-          >
-            <Plus className="h-4 w-4" /> Add first competitor
-          </button>
-        </div>
+        <EmptyState onAdd={() => setShowModal(true)} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {competitors.map(comp => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {competitors.map(c => (
             <CompetitorCard
-              key={(comp._id as any).toString()}
-              competitor={comp}
-              myScores={{ overall: myScore, ...myCats }}
+              key={(c._id as any).toString()}
+              competitor={c}
+              myScores={myScores}
               onAudit={auditCompetitor}
               onDelete={deleteCompetitor}
             />
@@ -363,7 +414,7 @@ export default function CompetitorsPage() {
       {showModal && (
         <AddModal
           onClose={() => setShowModal(false)}
-          onAdded={() => { setShowModal(false); fetchAll() }}
+          onAdded={fetchAll}
         />
       )}
     </div>

@@ -1,6 +1,14 @@
+// src/app/api/brand/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createBrand, getBrandByUserId, updateBrand } from '@/lib/mongodb'
+import {
+  createBrand, getBrandByUserId, updateBrand,
+  createBrandPage, getBrandPages,
+  createCompetitor, getCompetitors,
+  updateBrandPage, updateBrandPageWithAuditResult,
+  updateCompetitor,
+} from '@/lib/mongodb'
+import { analyzeWebsite } from '@/lib/analyzer'
 
 export async function GET() {
   try {
@@ -24,40 +32,122 @@ export async function POST(request: NextRequest) {
     const { brandName, domain, industry, keywords, competitorDomains } = body
 
     if (!brandName || !domain || !industry) {
-      return NextResponse.json({ error: 'brandName, domain, and industry are required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'brandName, domain, and industry are required' },
+        { status: 400 }
+      )
     }
 
     // Normalise domain
     let cleanDomain = domain.trim().toLowerCase()
-    cleanDomain = cleanDomain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+    cleanDomain = cleanDomain
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .replace(/\/$/, '')
 
-    // Check if brand already exists for this user
+    const cleanCompetitors: string[] = (competitorDomains || [])
+      .slice(0, 3)
+      .map((d: string) =>
+        d.trim().toLowerCase()
+          .replace(/^https?:\/\//, '')
+          .replace(/^www\./, '')
+          .replace(/\/$/, '')
+      )
+      .filter(Boolean)
+
     const existing = await getBrandByUserId(userId)
 
+    let brandId: string
+
     if (existing && existing._id) {
-      await updateBrand(existing._id.toString(), {
+      brandId = existing._id.toString()
+      await updateBrand(brandId, {
         brandName: brandName.trim(),
         domain: cleanDomain,
         industry,
         keywords: (keywords || []).slice(0, 5).map((k: string) => k.trim()).filter(Boolean),
-        competitorDomains: (competitorDomains || []).slice(0, 5).map((d: string) => d.trim()).filter(Boolean),
+        competitorDomains: cleanCompetitors,
       })
-      const updated = await getBrandByUserId(userId)
-      return NextResponse.json({ brand: updated })
+    } else {
+      brandId = await createBrand({
+        userId,
+        brandName: brandName.trim(),
+        domain: cleanDomain,
+        industry,
+        keywords: (keywords || []).slice(0, 5).map((k: string) => k.trim()).filter(Boolean),
+        competitorDomains: cleanCompetitors,
+      })
     }
 
-    const id = await createBrand({
-      userId,
-      brandName: brandName.trim(),
-      domain: cleanDomain,
-      industry,
-      keywords: (keywords || []).slice(0, 5).map((k: string) => k.trim()).filter(Boolean),
-      competitorDomains: (competitorDomains || []).slice(0, 5).map((d: string) => d.trim()).filter(Boolean),
-    })
+    // ── Auto-seed homepage page if none exist ────────────────
+    const existingPages = await getBrandPages(brandId)
+    if (existingPages.length === 0) {
+      const homepageUrl = `https://${cleanDomain}`
+      const pageId = await createBrandPage({
+        brandId,
+        userId,
+        url: homepageUrl,
+        label: 'Homepage',
+      })
 
-    return NextResponse.json({ id }, { status: 201 })
+      // Fire audit in background — don't await
+      auditPageInBackground(pageId).catch(console.error)
+    }
+
+    // ── Auto-seed competitors if provided ────────────────────
+    if (cleanCompetitors.length > 0) {
+      const existingComps = await getCompetitors(brandId)
+      const existingDomains = existingComps.map(c => c.domain)
+
+      for (const compDomain of cleanCompetitors) {
+        if (existingDomains.includes(compDomain)) continue // already exists
+
+        const compId = await createCompetitor({ brandId, userId, domain: compDomain })
+
+        // Fire competitor audit in background — don't await
+        auditCompetitorInBackground(compId, compDomain).catch(console.error)
+      }
+    }
+
+    return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
     console.error('POST /api/brand error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// ─── Background: audit a brand page ─────────────────────────────────────────
+
+async function auditPageInBackground(pageId: string) {
+  const { getBrandPage } = await import('@/lib/mongodb')
+  const page = await getBrandPage(pageId)
+  if (!page) return
+
+  try {
+    await updateBrandPage(pageId, { status: 'auditing' })
+    const result = await analyzeWebsite(page.url)
+    await updateBrandPageWithAuditResult(pageId, result.score, result.categoryScores, result.findings)
+  } catch (err: any) {
+    await updateBrandPage(pageId, { status: 'critical' })
+    console.error(`Onboarding homepage audit failed:`, err.message)
+  }
+}
+
+// ─── Background: audit a competitor ──────────────────────────────────────────
+// Accepts domain directly — no need for a getCompetitor() helper
+
+async function auditCompetitorInBackground(competitorId: string, domain: string) {
+  try {
+    await updateCompetitor(competitorId, { status: 'auditing' })
+    const result = await analyzeWebsite(`https://${domain}`)
+    await updateCompetitor(competitorId, {
+      score: result.score,
+      categoryScores: result.categoryScores,
+      status: 'done',
+      lastAuditedAt: new Date(),
+    })
+  } catch (err: any) {
+    await updateCompetitor(competitorId, { status: 'failed' })
+    console.error(`Onboarding competitor audit failed for ${domain}:`, err.message)
   }
 }
